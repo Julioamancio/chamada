@@ -26,6 +26,10 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
+# --- Garante que a pasta de uploads existe (importante para Render/Heroku) ---
+if not os.path.exists(app.config['UPLOAD_FOLDER']):
+    os.makedirs(app.config['UPLOAD_FOLDER'])
+
 # ---- MODELO DE USUÁRIO ----
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -43,7 +47,7 @@ class User(db.Model, UserMixin):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# ---- MODELOS ORIGINAIS (TURMA AGORA TEM user_id) ----
+# ---- MODELOS ----
 class Turma(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
@@ -92,12 +96,11 @@ def criar_etapas():
             db.session.add(Etapa(nome=nome))
     db.session.commit()
 
-# ---- INICIALIZAÇÃO BANCO ----
 with app.app_context():
     db.create_all()
     criar_etapas()
 
-# ---- AUTENTICAÇÃO ----
+# ---- ROTAS DE AUTENTICAÇÃO ----
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -164,7 +167,7 @@ def reset_token(token):
         return redirect(url_for('login'))
     return render_template('reset_token.html')
 
-# ---- ROTAS DE TURMAS (SOMENTE DO USUÁRIO) ----
+# ---- ROTAS DE TURMAS ----
 
 @app.route('/')
 def home():
@@ -205,10 +208,16 @@ def importar_alunos(turma_id):
             flash('Envie um arquivo .xlsx')
             return redirect(request.url)
         caminho = os.path.join(app.config['UPLOAD_FOLDER'], arquivo.filename)
-        if not os.path.exists(app.config['UPLOAD_FOLDER']):
-            os.makedirs(app.config['UPLOAD_FOLDER'])
-        arquivo.save(caminho)
-        df = pd.read_excel(caminho)
+        try:
+            arquivo.save(caminho)
+        except Exception as e:
+            flash(f"Erro ao salvar arquivo: {e}")
+            return redirect(request.url)
+        try:
+            df = pd.read_excel(caminho, engine='openpyxl')
+        except Exception as e:
+            flash(f"Erro ao ler o arquivo Excel: {e}")
+            return redirect(request.url)
         if 'Nome' not in df.columns:
             flash('Arquivo deve ter a coluna "Nome"')
             return redirect(request.url)
@@ -467,8 +476,3 @@ def copiar_chamadas(turma_id):
     return render_template('copiar_chamadas.html', turma=turma, turmas=turmas, chamadas=chamadas)
 
 # Pronto para produção: não use webbrowser/open ou app.run() aqui.
-
-# Pronto para produção: não use webbrowser/open ou app.run() aqui.
-#webbrowser.open('http://127.0.0.1:5000')
-#if __name__ == '__main__':
-    @app.run(debug=True)
