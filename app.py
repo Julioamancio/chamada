@@ -344,4 +344,4 @@ def copiar_chamadas(turma_id):
         return redirect(url_for('turma_detail', turma_id=turma_id))
     return render_template('copiar_chamadas.html', turma=turma, turmas=turmas, chamadas=chamadas)
 
-# Nada de webbrowser ou app.run() aqui!
+# Pronto para produção: não use webbrowser/open ou app.run() aqui.
