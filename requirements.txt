@@ -3,5 +3,6 @@ Flask-SQLAlchemy>=3.0
 Flask-Login>=0.6
 Flask-Mail>=0.9
 pandas>=2.0
+openpyxl
 Werkzeug>=2.3
 gunicorn
