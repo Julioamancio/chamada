@@ -1,7 +1,5 @@
-Flask>=2.3
-Flask-SQLAlchemy>=3.0
-Flask-Login>=0.6
-Flask-Mail>=0.9
-pandas>=2.0
-Werkzeug>=2.3
-gunicorn
+Flask
+flask_sqlalchemy
+pandas
+openpyxl
+flask_bootstrap
