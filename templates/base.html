@@ -17,10 +17,27 @@
 <nav class="navbar navbar-expand-lg">
   <div class="container">
     <a class="navbar-brand" href="{{ url_for('home') }}"><i class="fa-solid fa-clipboard-list"></i> Chamada Escolar</a>
-    <div class="collapse navbar-collapse">
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+            aria-controls="navbarNav" aria-expanded="false" aria-label="Alternar navegação">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
       <ul class="navbar-nav ms-auto">
         <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}"><i class="fa-solid fa-house"></i> Início</a></li>
         <li class="nav-item"><a class="nav-link" href="{{ url_for('atividades') }}"><i class="fa-solid fa-bolt"></i> Atividades</a></li>
+        {% if current_user.is_authenticated %}
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('logout') }}">
+              <i class="fa-solid fa-sign-out-alt"></i> Sair
+            </a>
+          </li>
+        {% else %}
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('login') }}">
+              <i class="fa-solid fa-user"></i> Login
+            </a>
+          </li>
+        {% endif %}
       </ul>
     </div>
   </div>
@@ -35,5 +52,6 @@
     {% endwith %}
     {% block content %}{% endblock %}
 </div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
