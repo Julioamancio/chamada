@@ -1,5 +1,6 @@
-Flask
-flask_sqlalchemy
-pandas
-openpyxl
-flask_bootstrap
+Flask==3.1.1
+flask_sqlalchemy==3.1.1
+pandas==2.3.0
+gunicorn==23.0.0
+flask_bootstrap==3.3.7.1
+openpyxl==3.1.5
