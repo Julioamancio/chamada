@@ -1,5 +1,4 @@
-Flask
-flask_sqlalchemy
-pandas
-openpyxl
-flask_bootstrap
+Flask>=3.0.0
+Flask-SQLAlchemy>=3.0.0
+pandas>=2.0.0
+gunicorn>=21.0.0  # Recomendado para produção/Render.com
