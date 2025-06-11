@@ -189,7 +189,7 @@ def turma_add():
             db.session.add(turma)
             db.session.commit()
             return redirect(url_for('index'))
-    return render_template('turma_form.html')
+    return render_template('turma_form.html', turma=None)
 
 @app.route('/turmas/<int:turma_id>')
 @login_required
@@ -198,6 +198,38 @@ def turma_detail(turma_id):
     chamadas = Chamada.query.filter_by(turma_id=turma_id).order_by(Chamada.data.desc()).all()
     return render_template('turma_detail.html', turma=turma, chamadas=chamadas)
 
+# --- EDITAR TURMA ---
+@app.route('/turmas/<int:turma_id>/edit', methods=['GET', 'POST'])
+@login_required
+def turma_edit(turma_id):
+    turma = Turma.query.filter_by(id=turma_id, user_id=current_user.id).first_or_404()
+    if request.method == 'POST':
+        nome = request.form['nome']
+        if nome:
+            turma.nome = nome
+            db.session.commit()
+            flash('Turma atualizada com sucesso!')
+            return redirect(url_for('index'))
+    return render_template('turma_form.html', turma=turma)
+
+# --- DELETAR TURMA ---
+@app.route('/turmas/<int:turma_id>/delete', methods=['POST'])
+@login_required
+def turma_delete(turma_id):
+    turma = Turma.query.filter_by(id=turma_id, user_id=current_user.id).first_or_404()
+    # Remove chamadas e presenças relacionadas
+    for chamada in turma.chamadas:
+        Presenca.query.filter_by(chamada_id=chamada.id).delete()
+        db.session.delete(chamada)
+    # Remove alunos relacionados
+    for aluno in turma.alunos:
+        db.session.delete(aluno)
+    db.session.delete(turma)
+    db.session.commit()
+    flash('Turma deletada com sucesso!')
+    return redirect(url_for('index'))
+
+# --- IMPORTAÇÃO DE ALUNOS ---
 @app.route('/turmas/<int:turma_id>/importar', methods=['GET', 'POST'])
 @login_required
 def importar_alunos(turma_id):
@@ -231,6 +263,7 @@ def importar_alunos(turma_id):
         return redirect(url_for('turma_detail', turma_id=turma_id))
     return render_template('importar_alunos.html', turma=turma)
 
+# --- LISTAR/CRIAR ALUNOS POR TURMA ---
 @app.route('/turmas/<int:turma_id>/alunos', methods=['GET', 'POST'])
 @login_required
 def alunos(turma_id):
@@ -244,6 +277,7 @@ def alunos(turma_id):
             flash('Aluno criado!')
     return render_template('alunos.html', turma=turma, alunos=turma.alunos)
 
+# --- EDITAR ALUNO ---
 @app.route('/alunos/edit/<int:aluno_id>', methods=['GET', 'POST'])
 @login_required
 def aluno_edit(aluno_id):
@@ -258,6 +292,7 @@ def aluno_edit(aluno_id):
             return redirect(url_for('alunos', turma_id=aluno.turma_id))
     return render_template('aluno_form.html', aluno=aluno)
 
+# --- DELETAR ALUNO ---
 @app.route('/alunos/delete/<int:aluno_id>', methods=['POST'])
 @login_required
 def aluno_delete(aluno_id):
@@ -269,6 +304,7 @@ def aluno_delete(aluno_id):
     flash('Aluno removido!')
     return redirect(url_for('alunos', turma_id=turma_id))
 
+# --- ATIVIDADES ---
 @app.route('/atividades')
 @login_required
 def atividades():
@@ -292,6 +328,7 @@ def atividade_add():
             return redirect(url_for('atividades'))
     return render_template('atividade_form.html', etapas=etapas)
 
+# --- CHAMADAS POR TURMA ---
 @app.route('/chamada/<int:turma_id>', methods=['GET', 'POST'])
 @login_required
 def chamada(turma_id):
@@ -322,6 +359,7 @@ def chamada(turma_id):
         return redirect(url_for('turma_detail', turma_id=turma_id))
     return render_template('chamada.html', turma=turma, atividades=atividades, etapas=etapas)
 
+# --- EDITAR CHAMADA ---
 @app.route('/chamada/edit/<int:chamada_id>', methods=['GET', 'POST'])
 @login_required
 def chamada_edit(chamada_id):
@@ -350,6 +388,7 @@ def chamada_edit(chamada_id):
         return redirect(url_for('turma_detail', turma_id=turma.id))
     return render_template('chamada_edit.html', chamada=chamada, turma=turma, atividades=atividades, etapas=etapas, registros=registros)
 
+# --- DELETAR CHAMADA ---
 @app.route('/chamada/delete/<int:chamada_id>', methods=['POST'])
 @login_required
 def chamada_delete(chamada_id):
@@ -362,6 +401,7 @@ def chamada_delete(chamada_id):
     flash('Chamada removida!')
     return redirect(url_for('turma_detail', turma_id=turma_id))
 
+# --- RELATÓRIO POR TURMA ---
 @app.route('/relatorio/<int:turma_id>')
 @login_required
 def relatorio(turma_id):
@@ -403,6 +443,7 @@ def relatorio(turma_id):
         tipo=tipo
     )
 
+# --- ADICIONAR ALUNO ---
 @app.route('/alunos/add/<int:turma_id>', methods=['GET', 'POST'])
 @login_required
 def aluno_add(turma_id):
@@ -417,7 +458,7 @@ def aluno_add(turma_id):
             return redirect(url_for('alunos', turma_id=turma_id))
     return render_template('aluno_form.html', turma=turma, aluno=None)
 
-# NOVAS ROTAS PARA COPIAR ATIVIDADES E CHAMADAS
+# --- COPIAR ATIVIDADES ENTRE TURMAS DO MESMO USUÁRIO ---
 @app.route('/turmas/<int:turma_id>/copiar_atividades', methods=['GET', 'POST'])
 @login_required
 def copiar_atividades(turma_id):
@@ -442,6 +483,7 @@ def copiar_atividades(turma_id):
         return redirect(url_for('turma_detail', turma_id=turma_id))
     return render_template('copiar_atividades.html', turma=turma, turmas=turmas, atividades=atividades)
 
+# --- COPIAR CHAMADAS ENTRE TURMAS DO MESMO USUÁRIO ---
 @app.route('/turmas/<int:turma_id>/copiar_chamadas', methods=['GET', 'POST'])
 @login_required
 def copiar_chamadas(turma_id):
