@@ -32,6 +32,7 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(120), unique=True, nullable=False)
     senha_hash = db.Column(db.String(128), nullable=False)
     reset_token = db.Column(db.String(128), nullable=True)
+    turmas = db.relationship('Turma', backref='usuario', lazy=True)
 
     def set_password(self, senha):
         self.senha_hash = generate_password_hash(senha)
@@ -42,10 +43,11 @@ class User(db.Model, UserMixin):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# ---- SEUS MODELOS ORIGINAIS ----
+# ---- MODELOS ORIGINAIS (TURMA AGORA TEM user_id) ----
 class Turma(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     alunos = db.relationship('Aluno', backref='turma', lazy=True)
     chamadas = db.relationship('Chamada', backref='turma', lazy=True)
 
@@ -162,7 +164,7 @@ def reset_token(token):
         return redirect(url_for('login'))
     return render_template('reset_token.html')
 
-# ---- SUAS ROTAS ORIGINAIS (agora protegidas) ----
+# ---- ROTAS DE TURMAS (SOMENTE DO USUÁRIO) ----
 
 @app.route('/')
 def home():
@@ -171,7 +173,7 @@ def home():
 @app.route('/inicio')
 @login_required
 def index():
-    turmas = Turma.query.all()
+    turmas = Turma.query.filter_by(user_id=current_user.id).all()
     return render_template('index.html', turmas=turmas)
 
 @app.route('/turmas/add', methods=['GET', 'POST'])
@@ -180,7 +182,7 @@ def turma_add():
     if request.method == 'POST':
         nome = request.form['nome']
         if nome:
-            turma = Turma(nome=nome)
+            turma = Turma(nome=nome, user_id=current_user.id)
             db.session.add(turma)
             db.session.commit()
             return redirect(url_for('index'))
@@ -189,14 +191,14 @@ def turma_add():
 @app.route('/turmas/<int:turma_id>')
 @login_required
 def turma_detail(turma_id):
-    turma = Turma.query.get_or_404(turma_id)
+    turma = Turma.query.filter_by(id=turma_id, user_id=current_user.id).first_or_404()
     chamadas = Chamada.query.filter_by(turma_id=turma_id).order_by(Chamada.data.desc()).all()
     return render_template('turma_detail.html', turma=turma, chamadas=chamadas)
 
 @app.route('/turmas/<int:turma_id>/importar', methods=['GET', 'POST'])
 @login_required
 def importar_alunos(turma_id):
-    turma = Turma.query.get_or_404(turma_id)
+    turma = Turma.query.filter_by(id=turma_id, user_id=current_user.id).first_or_404()
     if request.method == 'POST':
         arquivo = request.files['arquivo']
         if not arquivo.filename.endswith('.xlsx'):
@@ -223,7 +225,7 @@ def importar_alunos(turma_id):
 @app.route('/turmas/<int:turma_id>/alunos', methods=['GET', 'POST'])
 @login_required
 def alunos(turma_id):
-    turma = Turma.query.get_or_404(turma_id)
+    turma = Turma.query.filter_by(id=turma_id, user_id=current_user.id).first_or_404()
     if request.method == 'POST':
         nome = request.form['nome']
         if nome and not Aluno.query.filter_by(nome=nome.strip(), turma_id=turma_id).first():
@@ -237,6 +239,7 @@ def alunos(turma_id):
 @login_required
 def aluno_edit(aluno_id):
     aluno = Aluno.query.get_or_404(aluno_id)
+    turma = Turma.query.filter_by(id=aluno.turma_id, user_id=current_user.id).first_or_404()
     if request.method == 'POST':
         nome = request.form['nome']
         if nome:
@@ -250,6 +253,7 @@ def aluno_edit(aluno_id):
 @login_required
 def aluno_delete(aluno_id):
     aluno = Aluno.query.get_or_404(aluno_id)
+    turma = Turma.query.filter_by(id=aluno.turma_id, user_id=current_user.id).first_or_404()
     turma_id = aluno.turma_id
     db.session.delete(aluno)
     db.session.commit()
@@ -282,7 +286,7 @@ def atividade_add():
 @app.route('/chamada/<int:turma_id>', methods=['GET', 'POST'])
 @login_required
 def chamada(turma_id):
-    turma = Turma.query.get_or_404(turma_id)
+    turma = Turma.query.filter_by(id=turma_id, user_id=current_user.id).first_or_404()
     atividades = Atividade.query.all()
     etapas = Etapa.query.all()
     if request.method == 'POST':
@@ -313,7 +317,7 @@ def chamada(turma_id):
 @login_required
 def chamada_edit(chamada_id):
     chamada = Chamada.query.get_or_404(chamada_id)
-    turma = chamada.turma
+    turma = Turma.query.filter_by(id=chamada.turma_id, user_id=current_user.id).first_or_404()
     atividades = Atividade.query.all()
     etapas = Etapa.query.all()
     registros = {p.aluno_id: p for p in chamada.registros}
@@ -341,6 +345,7 @@ def chamada_edit(chamada_id):
 @login_required
 def chamada_delete(chamada_id):
     chamada = Chamada.query.get_or_404(chamada_id)
+    turma = Turma.query.filter_by(id=chamada.turma_id, user_id=current_user.id).first_or_404()
     turma_id = chamada.turma_id
     Presenca.query.filter_by(chamada_id=chamada.id).delete()
     db.session.delete(chamada)
@@ -351,8 +356,8 @@ def chamada_delete(chamada_id):
 @app.route('/relatorio/<int:turma_id>')
 @login_required
 def relatorio(turma_id):
+    turma = Turma.query.filter_by(id=turma_id, user_id=current_user.id).first_or_404()
     tipo = request.args.get('tipo', 'detalhado')
-    turma = Turma.query.get_or_404(turma_id)
     alunos = turma.alunos
     etapas = Etapa.query.all()
     chamadas = Chamada.query.filter_by(turma_id=turma_id).order_by(Chamada.data).all()
@@ -392,7 +397,7 @@ def relatorio(turma_id):
 @app.route('/alunos/add/<int:turma_id>', methods=['GET', 'POST'])
 @login_required
 def aluno_add(turma_id):
-    turma = Turma.query.get_or_404(turma_id)
+    turma = Turma.query.filter_by(id=turma_id, user_id=current_user.id).first_or_404()
     if request.method == 'POST':
         nome = request.form['nome']
         if nome and not Aluno.query.filter_by(nome=nome.strip(), turma_id=turma_id).first():
@@ -407,9 +412,9 @@ def aluno_add(turma_id):
 @app.route('/turmas/<int:turma_id>/copiar_atividades', methods=['GET', 'POST'])
 @login_required
 def copiar_atividades(turma_id):
-    turma = Turma.query.get_or_404(turma_id)
+    turma = Turma.query.filter_by(id=turma_id, user_id=current_user.id).first_or_404()
     atividades = Atividade.query.all()
-    turmas = Turma.query.filter(Turma.id != turma_id).all()
+    turmas = Turma.query.filter(Turma.id != turma_id, Turma.user_id == current_user.id).all()
     if request.method == 'POST':
         turmas_destino = [int(tid) for tid in request.form.getlist('turmas_destino')]
         atividades_ids = [int(aid) for aid in request.form.getlist('atividades_ids')]
@@ -431,8 +436,8 @@ def copiar_atividades(turma_id):
 @app.route('/turmas/<int:turma_id>/copiar_chamadas', methods=['GET', 'POST'])
 @login_required
 def copiar_chamadas(turma_id):
-    turma = Turma.query.get_or_404(turma_id)
-    turmas = Turma.query.filter(Turma.id != turma_id).all()
+    turma = Turma.query.filter_by(id=turma_id, user_id=current_user.id).first_or_404()
+    turmas = Turma.query.filter(Turma.id != turma_id, Turma.user_id == current_user.id).all()
     chamadas = Chamada.query.filter_by(turma_id=turma_id).all()
     if request.method == 'POST':
         turmas_destino = [int(tid) for tid in request.form.getlist('turmas_destino')]
