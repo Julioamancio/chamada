@@ -58,8 +58,8 @@ def criar_etapas():
             db.session.add(Etapa(nome=nome))
     db.session.commit()
 
-@app.before_first_request
-def setup():
+# Inicialização segura para Flask 3.x+
+with app.app_context():
     db.create_all()
     criar_etapas()
 
