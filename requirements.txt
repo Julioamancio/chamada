@@ -1,4 +1,4 @@
-Flask>=3.0.0
-Flask-SQLAlchemy>=3.0.0
-pandas>=2.0.0
-gunicorn>=21.0.0  # Recomendado para produção/Render.com
+Flask==3.1.1
+Flask-SQLAlchemy==3.1.1
+pandas==2.3.0
+gunicorn==23.0.0
