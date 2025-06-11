@@ -3,14 +3,46 @@ from flask_sqlalchemy import SQLAlchemy
 import pandas as pd
 import os
 from datetime import datetime
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user, UserMixin
+from flask_mail import Mail, Message
+from werkzeug.security import generate_password_hash, check_password_hash
+import secrets
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'chave_secreta'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chamada.db'
 app.config['UPLOAD_FOLDER'] = 'uploads'
+
+# ---- CONFIG EMAIL (ajuste para seu provedor) ----
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'SEU_EMAIL@gmail.com'       # <-- Troque aqui
+app.config['MAIL_PASSWORD'] = 'SENHA_DO_APP'              # <-- Troque aqui
+mail = Mail(app)
+
 db = SQLAlchemy(app)
 
-# MODELOS
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
+
+# ---- MODELO DE USUÁRIO ----
+class User(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    senha_hash = db.Column(db.String(128), nullable=False)
+    reset_token = db.Column(db.String(128), nullable=True)
+
+    def set_password(self, senha):
+        self.senha_hash = generate_password_hash(senha)
+    def check_password(self, senha):
+        return check_password_hash(self.senha_hash, senha)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+# ---- SEUS MODELOS ORIGINAIS ----
 class Turma(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
@@ -58,21 +90,92 @@ def criar_etapas():
             db.session.add(Etapa(nome=nome))
     db.session.commit()
 
-# Inicialização segura para Flask 3.x+
+# ---- INICIALIZAÇÃO BANCO ----
 with app.app_context():
     db.create_all()
     criar_etapas()
+
+# ---- AUTENTICAÇÃO ----
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    if request.method == 'POST':
+        user = User.query.filter_by(email=request.form['email']).first()
+        if user and user.check_password(request.form['senha']):
+            login_user(user)
+            return redirect(url_for('index'))
+        flash('E-mail ou senha inválidos!')
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    if request.method == 'POST':
+        if User.query.filter_by(email=request.form['email']).first():
+            flash('E-mail já cadastrado!')
+        else:
+            user = User(email=request.form['email'])
+            user.set_password(request.form['senha'])
+            db.session.add(user)
+            db.session.commit()
+            flash('Usuário criado! Faça login.')
+            return redirect(url_for('login'))
+    return render_template('register.html')
+
+@app.route('/reset', methods=['GET', 'POST'])
+def reset_request():
+    if request.method == 'POST':
+        user = User.query.filter_by(email=request.form['email']).first()
+        if user:
+            token = secrets.token_urlsafe(32)
+            user.reset_token = token
+            db.session.commit()
+            link = url_for('reset_token', token=token, _external=True)
+            msg = Message("Recuperação de senha", recipients=[user.email],
+                          body=f"Clique no link para redefinir sua senha: {link}")
+            mail.send(msg)
+            flash('E-mail enviado com instruções para redefinir sua senha!')
+        else:
+            flash('Se o e-mail existir, enviaremos um link de recuperação.')
+    return render_template('reset_request.html')
+
+@app.route('/reset/<token>', methods=['GET', 'POST'])
+def reset_token(token):
+    user = User.query.filter_by(reset_token=token).first()
+    if not user:
+        flash('Token inválido ou expirado!')
+        return redirect(url_for('login'))
+    if request.method == 'POST':
+        user.set_password(request.form['senha'])
+        user.reset_token = None
+        db.session.commit()
+        flash('Senha redefinida! Faça login.')
+        return redirect(url_for('login'))
+    return render_template('reset_token.html')
+
+# ---- SUAS ROTAS ORIGINAIS (agora protegidas) ----
 
 @app.route('/')
 def home():
     return render_template('home.html')
 
 @app.route('/inicio')
+@login_required
 def index():
     turmas = Turma.query.all()
     return render_template('index.html', turmas=turmas)
 
 @app.route('/turmas/add', methods=['GET', 'POST'])
+@login_required
 def turma_add():
     if request.method == 'POST':
         nome = request.form['nome']
@@ -84,12 +187,14 @@ def turma_add():
     return render_template('turma_form.html')
 
 @app.route('/turmas/<int:turma_id>')
+@login_required
 def turma_detail(turma_id):
     turma = Turma.query.get_or_404(turma_id)
     chamadas = Chamada.query.filter_by(turma_id=turma_id).order_by(Chamada.data.desc()).all()
     return render_template('turma_detail.html', turma=turma, chamadas=chamadas)
 
 @app.route('/turmas/<int:turma_id>/importar', methods=['GET', 'POST'])
+@login_required
 def importar_alunos(turma_id):
     turma = Turma.query.get_or_404(turma_id)
     if request.method == 'POST':
@@ -116,6 +221,7 @@ def importar_alunos(turma_id):
     return render_template('importar_alunos.html', turma=turma)
 
 @app.route('/turmas/<int:turma_id>/alunos', methods=['GET', 'POST'])
+@login_required
 def alunos(turma_id):
     turma = Turma.query.get_or_404(turma_id)
     if request.method == 'POST':
@@ -128,6 +234,7 @@ def alunos(turma_id):
     return render_template('alunos.html', turma=turma, alunos=turma.alunos)
 
 @app.route('/alunos/edit/<int:aluno_id>', methods=['GET', 'POST'])
+@login_required
 def aluno_edit(aluno_id):
     aluno = Aluno.query.get_or_404(aluno_id)
     if request.method == 'POST':
@@ -140,6 +247,7 @@ def aluno_edit(aluno_id):
     return render_template('aluno_form.html', aluno=aluno)
 
 @app.route('/alunos/delete/<int:aluno_id>', methods=['POST'])
+@login_required
 def aluno_delete(aluno_id):
     aluno = Aluno.query.get_or_404(aluno_id)
     turma_id = aluno.turma_id
@@ -149,12 +257,14 @@ def aluno_delete(aluno_id):
     return redirect(url_for('alunos', turma_id=turma_id))
 
 @app.route('/atividades')
+@login_required
 def atividades():
     atividades = Atividade.query.all()
     etapas = Etapa.query.all()
     return render_template('atividades.html', atividades=atividades, etapas=etapas)
 
 @app.route('/atividades/add', methods=['GET', 'POST'])
+@login_required
 def atividade_add():
     etapas = Etapa.query.all()
     if request.method == 'POST':
@@ -170,6 +280,7 @@ def atividade_add():
     return render_template('atividade_form.html', etapas=etapas)
 
 @app.route('/chamada/<int:turma_id>', methods=['GET', 'POST'])
+@login_required
 def chamada(turma_id):
     turma = Turma.query.get_or_404(turma_id)
     atividades = Atividade.query.all()
@@ -199,6 +310,7 @@ def chamada(turma_id):
     return render_template('chamada.html', turma=turma, atividades=atividades, etapas=etapas)
 
 @app.route('/chamada/edit/<int:chamada_id>', methods=['GET', 'POST'])
+@login_required
 def chamada_edit(chamada_id):
     chamada = Chamada.query.get_or_404(chamada_id)
     turma = chamada.turma
@@ -226,6 +338,7 @@ def chamada_edit(chamada_id):
     return render_template('chamada_edit.html', chamada=chamada, turma=turma, atividades=atividades, etapas=etapas, registros=registros)
 
 @app.route('/chamada/delete/<int:chamada_id>', methods=['POST'])
+@login_required
 def chamada_delete(chamada_id):
     chamada = Chamada.query.get_or_404(chamada_id)
     turma_id = chamada.turma_id
@@ -236,6 +349,7 @@ def chamada_delete(chamada_id):
     return redirect(url_for('turma_detail', turma_id=turma_id))
 
 @app.route('/relatorio/<int:turma_id>')
+@login_required
 def relatorio(turma_id):
     tipo = request.args.get('tipo', 'detalhado')
     turma = Turma.query.get_or_404(turma_id)
@@ -276,6 +390,7 @@ def relatorio(turma_id):
     )
 
 @app.route('/alunos/add/<int:turma_id>', methods=['GET', 'POST'])
+@login_required
 def aluno_add(turma_id):
     turma = Turma.query.get_or_404(turma_id)
     if request.method == 'POST':
@@ -290,6 +405,7 @@ def aluno_add(turma_id):
 
 # NOVAS ROTAS PARA COPIAR ATIVIDADES E CHAMADAS
 @app.route('/turmas/<int:turma_id>/copiar_atividades', methods=['GET', 'POST'])
+@login_required
 def copiar_atividades(turma_id):
     turma = Turma.query.get_or_404(turma_id)
     atividades = Atividade.query.all()
@@ -313,6 +429,7 @@ def copiar_atividades(turma_id):
     return render_template('copiar_atividades.html', turma=turma, turmas=turmas, atividades=atividades)
 
 @app.route('/turmas/<int:turma_id>/copiar_chamadas', methods=['GET', 'POST'])
+@login_required
 def copiar_chamadas(turma_id):
     turma = Turma.query.get_or_404(turma_id)
     turmas = Turma.query.filter(Turma.id != turma_id).all()
