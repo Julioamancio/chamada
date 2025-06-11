@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Chamada - {{ turma.nome }}{% endblock %}
+{% block content %}
+<h2><i class="fa-solid fa-clipboard-check"></i> Chamada para {{ turma.nome }}</h2>
+<form method="post">
+    <div class="mb-3">
+        <label class="form-label">Data:</label>
+        <input type="date" name="data" class="form-control" required value="{{ request.form.data or '' }}">
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Atividade:</label>
+        <select name="atividade_id" class="form-select" required>
+            {% for atividade in atividades %}
+                <option value="{{ atividade.id }}">{{ atividade.nome }} ({{ atividade.pontuacao }} pts, {{ atividade.numero_dias }} dias, {{ atividade.etapa.nome }})</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Etapa:</label>
+        <select name="etapa_id" class="form-select" required>
+            {% for etapa in etapas %}
+                <option value="{{ etapa.id }}">{{ etapa.nome }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <button type="button" class="btn btn-secondary mb-2" id="toggle-all"><i class="fa-solid fa-check-double"></i> Selecionar/Desselecionar Todos</button>
+    <table class="table table-bordered table-striped">
+        <thead><tr><th>Aluno</th><th>Presente?</th></tr></thead>
+        <tbody>
+        {% for aluno in turma.alunos %}
+            <tr>
+                <td>{{ aluno.nome }}</td>
+                <td><input type="checkbox" name="presente_{{ aluno.id }}" class="presenca-checkbox"></td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <button class="btn btn-success"><i class="fa-solid fa-save"></i> Salvar Chamada</button>
+    <a href="{{ url_for('turma_detail', turma_id=turma.id) }}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Voltar</a>
+</form>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var toggle = false;
+        document.getElementById('toggle-all').onclick = function() {
+            toggle = !toggle;
+            document.querySelectorAll('.presenca-checkbox').forEach(cb => cb.checked = toggle);
+        }
+    });
+</script>
+{% endblock %}

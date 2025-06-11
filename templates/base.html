@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Chamada Escolar{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        body {background: #f5f8fc;}
+        .navbar {background: #1476f2;}
+        .navbar-brand, .nav-link, .nav-link:visited, .nav-link:active {color:#fff !important;}
+        .btn-primary.active, .btn-primary:active {background:#0d47a1 !important;}
+        .btn-secondary.active, .btn-secondary:active {background:#888 !important;}
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg">
+  <div class="container">
+    <a class="navbar-brand" href="{{ url_for('home') }}"><i class="fa-solid fa-clipboard-list"></i> Chamada Escolar</a>
+    <div class="collapse navbar-collapse">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}"><i class="fa-solid fa-house"></i> Início</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('atividades') }}"><i class="fa-solid fa-bolt"></i> Atividades</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+<div class="container py-4">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for msg in messages %}
+          <div class="alert alert-info">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+</div>
+</body>
+</html>

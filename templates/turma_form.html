@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Nova Turma{% endblock %}
+{% block content %}
+<h2><i class="fa-solid fa-plus"></i> Nova Turma</h2>
+<form method="post">
+    <div class="mb-3">
+        <label class="form-label">Nome da Turma:</label>
+        <input type="text" name="nome" class="form-control" required>
+    </div>
+    <button class="btn btn-primary"><i class="fa-solid fa-save"></i> Salvar</button>
+    <a href="{{ url_for('index') }}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Voltar</a>
+</form>
+{% endblock %}

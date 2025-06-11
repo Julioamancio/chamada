@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Copiar Atividades{% endblock %}
+{% block content %}
+<h2><i class="fa-solid fa-copy"></i> Copiar Atividades</h2>
+<form method="post">
+  <div class="mb-3">
+    <label for="turmas_destino" class="form-label">Turmas Destino</label>
+    <select id="turmas_destino" name="turmas_destino" multiple class="form-select">
+      {% for t in turmas %}
+        <option value="{{ t.id }}">{{ t.nome }}</option>
+      {% endfor %}
+    </select>
+    <small class="form-text text-muted">Segure Ctrl para selecionar várias turmas.</small>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Atividades a copiar</label>
+    <div>
+      {% for a in atividades %}
+        <label class="form-check-label me-3">
+          <input type="checkbox" name="atividades_ids" value="{{ a.id }}"> {{ a.nome }} ({{ a.pontuacao }} pts)
+        </label>
+      {% endfor %}
+    </div>
+  </div>
+  <button type="submit" class="btn btn-primary"><i class="fa-solid fa-copy"></i> Copiar</button>
+  <a href="{{ url_for('turma_detail', turma_id=turma.id) }}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Voltar</a>
+</form>
+{% endblock %}

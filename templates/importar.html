@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Importar Alunos{% endblock %}
+{% block content %}
+<h2>Importar Alunos via Excel</h2>
+<form method="post" enctype="multipart/form-data">
+    <div class="mb-3">
+        <label for="turma" class="form-label">Nome da Turma</label>
+        <input type="text" class="form-control" id="turma" name="turma" required>
+    </div>
+    <div class="mb-3">
+        <label for="arquivo" class="form-label">Arquivo Excel (.xlsx) - Coluna A: Nome</label>
+        <input type="file" class="form-control" id="arquivo" name="arquivo" accept=".xlsx" required>
+    </div>
+    <button type="submit" class="btn btn-primary">
+        <i class="fas fa-file-excel"></i> Importar
+    </button>
+</form>
+{% endblock %}

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Relatório de Pontos - {{ turma.nome }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        h2 { color: #2c3e50; }
+        table { width: 100%; border-collapse: collapse; margin-top: 40px;}
+        th, td { border: 1px solid #555; padding: 8px; text-align: left; }
+        th { background: #eaeaea; }
+    </style>
+</head>
+<body>
+    <h2>Relatório de Pontos - {{ turma.nome }}</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Aluno</th>
+                <th>Pontos Totais</th>
+                <th>Pontuação por Presença</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for aluno in alunos %}
+            <tr>
+                <td>{{ aluno.nome }}</td>
+                <td>{{ aluno.pontos_totais }}</td>
+                <td>{{ aluno.pontuacao }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <p style="margin-top:40px; font-size:12px;">Gerado em {{ now.strftime('%d/%m/%Y %H:%M') }}</p>
+</body>
+</html>

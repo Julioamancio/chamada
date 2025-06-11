@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ turma.nome }}{% endblock %}
+{% block content %}
+<h2><i class="fa-solid fa-chalkboard"></i> Turma: {{ turma.nome }}</h2>
+<div class="mb-3 d-flex flex-wrap gap-2">
+    <a href="{{ url_for('alunos', turma_id=turma.id) }}" class="btn btn-outline-primary"><i class="fa-solid fa-users"></i> Alunos</a>
+    <a href="{{ url_for('importar_alunos', turma_id=turma.id) }}" class="btn btn-outline-success"><i class="fa-solid fa-file-excel"></i> Importar Alunos</a>
+    <a href="{{ url_for('chamada', turma_id=turma.id) }}" class="btn btn-warning"><i class="fa-solid fa-clipboard-check"></i> Fazer Chamada</a>
+    <a href="{{ url_for('relatorio', turma_id=turma.id) }}" class="btn btn-dark"><i class="fa-solid fa-file-lines"></i> Relatório</a>
+    <!-- Botões de cópia -->
+    <a href="{{ url_for('copiar_atividades', turma_id=turma.id) }}" class="btn btn-info"><i class="fa-solid fa-copy"></i> Copiar Atividades</a>
+    <a href="{{ url_for('copiar_chamadas', turma_id=turma.id) }}" class="btn btn-secondary"><i class="fa-solid fa-copy"></i> Copiar Chamadas</a>
+    <a href="{{ url_for('index') }}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Voltar</a>
+</div>
+<h4 class="mt-4"><i class="fa-solid fa-calendar-check"></i> Chamadas Realizadas</h4>
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Data</th>
+            <th>Atividade</th>
+            <th>Etapa</th>
+            <th style="width:120px;">Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for chamada in chamadas %}
+        <tr>
+            <td>{{ chamada.data.strftime("%d/%m/%Y") }}</td>
+            <td>{{ chamada.atividade.nome }}</td>
+            <td>{{ chamada.etapa.nome }}</td>
+            <td>
+                <div class="d-flex flex-row align-items-center gap-2">
+                    <a href="{{ url_for('chamada_edit', chamada_id=chamada.id) }}" class="btn btn-info btn-sm">
+                        <i class="fa-solid fa-edit"></i> Editar
+                    </a>
+                    <form method="post" action="{{ url_for('chamada_delete', chamada_id=chamada.id) }}" onsubmit="return confirm('Deseja remover esta chamada?');">
+                        <button class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i> Excluir</button>
+                    </form>
+                </div>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

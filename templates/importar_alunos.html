@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Importar Alunos{% endblock %}
+{% block content %}
+<h2><i class="fa-solid fa-file-excel"></i> Importar Alunos para {{ turma.nome }}</h2>
+<form method="post" enctype="multipart/form-data">
+    <div class="mb-3">
+        <label class="form-label">Arquivo Excel (.xlsx) - coluna "Nome"</label>
+        <input type="file" name="arquivo" class="form-control" required accept=".xlsx">
+    </div>
+    <button class="btn btn-success"><i class="fa-solid fa-upload"></i> Importar</button>
+    <a href="{{ url_for('turma_detail', turma_id=turma.id) }}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Voltar</a>
+</form>
+{% endblock %}

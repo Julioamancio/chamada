@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Turmas{% endblock %}
+{% block content %}
+<h2>Turmas</h2>
+<a href="{{ url_for('turma_add') }}" class="btn btn-success mb-3"><i class="fas fa-plus"></i> Nova Turma</a>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Nome</th>
+            <th>Alunos</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for turma in turmas %}
+        <tr>
+            <td>{{ turma.nome }}</td>
+            <td>{{ turma.alunos|length }}</td>
+            <td>
+                <a href="{{ url_for('alunos', turma_id=turma.id) }}" class="btn btn-info btn-sm"><i class="fas fa-user-graduate"></i> Alunos</a>
+                <a href="{{ url_for('turma_edit', id=turma.id) }}" class="btn btn-primary btn-sm"><i class="fas fa-edit"></i> Editar</a>
+                <form action="{{ url_for('turma_delete', id=turma.id) }}" method="post" style="display:inline;">
+                    <button class="btn btn-danger btn-sm" onclick="return confirm('Tem certeza?')" type="submit"><i class="fas fa-trash"></i> Deletar</button>
+                </form>
+                <a href="{{ url_for('chamada', turma_id=turma.id) }}" class="btn btn-warning btn-sm">
+                    <i class="fas fa-calendar-check"></i> Chamada
+                </a>
+                <a href="{{ url_for('relatorio', turma_id=turma.id) }}" class="btn btn-dark btn-sm">
+                    <i class="fas fa-chart-bar"></i> Relatório
+                </a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

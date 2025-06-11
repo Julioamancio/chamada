@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Nova Atividade{% endblock %}
+{% block content %}
+<h2><i class="fa-solid fa-plus"></i> Nova Atividade</h2>
+<form method="post">
+    <div class="mb-3">
+        <label class="form-label">Nome:</label>
+        <input type="text" name="nome" class="form-control" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Pontuação total:</label>
+        <input type="number" name="pontuacao" class="form-control" min="1" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Número de dias/aulas:</label>
+        <input type="number" name="numero_dias" class="form-control" min="1" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Etapa:</label>
+        <select name="etapa_id" class="form-select" required>
+            {% for etapa in etapas %}
+            <option value="{{ etapa.id }}">{{ etapa.nome }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <button class="btn btn-primary"><i class="fa-solid fa-save"></i> Salvar</button>
+    <a href="{{ url_for('atividades') }}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Voltar</a>
+</form>
+{% endblock %}

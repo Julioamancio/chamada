@@ -1,0 +1,5 @@
+Flask
+flask_sqlalchemy
+pandas
+openpyxl
+flask_bootstrap
