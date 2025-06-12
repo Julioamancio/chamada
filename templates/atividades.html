@@ -2,14 +2,17 @@
 {% block title %}Atividades{% endblock %}
 {% block content %}
 <h2><i class="fa-solid fa-bolt"></i> Atividades</h2>
-<a href="{{ url_for('atividade_add') }}" class="btn btn-success mb-3"><i class="fa-solid fa-plus"></i> Nova Atividade</a>
-<table class="table table-striped table-bordered">
+<a href="{{ url_for('atividade_add') }}" class="btn btn-success mb-3">
+    <i class="fa-solid fa-plus"></i> Nova Atividade
+</a>
+<table class="table table-striped table-bordered align-middle">
     <thead>
         <tr>
             <th>Nome</th>
             <th>Pontuação</th>
             <th>Nº Dias</th>
             <th>Etapa</th>
+            <th>Ações</th>
         </tr>
     </thead>
     <tbody>
@@ -19,9 +22,21 @@
             <td>{{ atividade.pontuacao }}</td>
             <td>{{ atividade.numero_dias }}</td>
             <td>{{ atividade.etapa.nome }}</td>
+            <td>
+                <a href="{{ url_for('atividade_edit', id=atividade.id) }}" class="btn btn-primary btn-sm" title="Editar">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </a>
+                <form action="{{ url_for('atividade_delete', id=atividade.id) }}" method="post" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja excluir esta atividade?');">
+                    <button type="submit" class="btn btn-danger btn-sm" title="Excluir">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </form>
+            </td>
         </tr>
     {% endfor %}
     </tbody>
 </table>
-<a href="{{ url_for('index') }}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Voltar</a>
+<a href="{{ url_for('index') }}" class="btn btn-secondary">
+    <i class="fa-solid fa-arrow-left"></i> Voltar
+</a>
 {% endblock %}
