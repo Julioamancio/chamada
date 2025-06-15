@@ -22,13 +22,10 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'chave_secreta')
 app.config['UPLOAD_FOLDER'] = 'uploads'
 
 # ---------- CONFIGURAÇÃO DO BANCO DE DADOS (Render PostgreSQL) ----------
-DB_USER = os.getenv("DB_USER", "postgres")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "")
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = os.getenv("DB_PORT", "5432")
-DB_NAME = os.getenv("DB_NAME", "postgres")
+# Use variáveis de ambiente SE existirem, SENÃO, usa dados fixos do Render
 app.config['SQLALCHEMY_DATABASE_URI'] = (
-    f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    os.getenv("DATABASE_URL") or
+    "postgresql://julioamancio:ZjujHtp41ob27JCgAVV4nzy31aPKUoju@dpg-d17jp43uibrs73fpejog-a.oregon-postgres.render.com/chamada_u4rc"
 )
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
