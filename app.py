@@ -537,4 +537,4 @@ def copiar_chamadas(turma_id):
     return render_template('copiar_chamadas.html', turma=turma, turmas=turmas, chamadas=chamadas)
 
 # Não inclua app.run() para produção.
-quero corrigido com o que pedi, sem estragar nada e completo
+
