@@ -22,7 +22,6 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'chave_secreta')
 app.config['UPLOAD_FOLDER'] = 'uploads'
 
 # ---------- CONFIGURAÇÃO DO BANCO DE DADOS (Render PostgreSQL) ----------
-# Use variáveis de ambiente SE existirem, SENÃO, usa dados fixos do Render
 app.config['SQLALCHEMY_DATABASE_URI'] = (
     os.getenv("DATABASE_URL") or
     "postgresql://julioamancio:ZjujHtp41ob27JCgAVV4nzy31aPKUoju@dpg-d17jp43uibrs73fpejog-a.oregon-postgres.render.com/chamada_u4rc"
@@ -47,7 +46,7 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    senha_hash = db.Column(db.String(128), nullable=False)
+    senha_hash = db.Column(db.Text, nullable=False)  # <-- Corrigido para TEXT
     reset_token = db.Column(db.String(128), nullable=True)
     turmas = db.relationship('Turma', backref='usuario', lazy=True)
 
