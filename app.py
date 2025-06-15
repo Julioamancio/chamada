@@ -12,6 +12,7 @@ from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 import pandas as pd
+from sqlalchemy.exc import OperationalError
 
 # ---------- CARREGAR VARIÁVEIS DE AMBIENTE (.env) ----------
 load_dotenv()  # Só tem efeito local
@@ -28,7 +29,6 @@ DB_HOST = os.getenv("DB_HOST", "db.kemhqlfhsjolmuhpgyrd.supabase.co")
 DB_PORT = os.getenv("DB_PORT", "5432")
 DB_NAME = os.getenv("DB_NAME", "postgres")
 
-# String de conexão EXATAMENTE como no script que funcionou
 app.config['SQLALCHEMY_DATABASE_URI'] = (
     f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 )
@@ -43,14 +43,22 @@ app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD', 'bbkdgkdekincbdlq')
 mail = Mail(app)
 
 db = SQLAlchemy(app)
-
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
 # ---------- GARANTE QUE A PASTA DE UPLOADS EXISTE ----------
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# ---------- MODELO DE USUÁRIO ----------
+# ---------- HEALTHCHECK AMIGÁVEL ----------
+@app.route("/health")
+def health():
+    try:
+        db.session.execute("SELECT 1")
+        return "✅ Banco de dados conectado!"
+    except OperationalError as e:
+        return f"❌ Erro ao conectar ao banco: {e}", 500
+
+# ---------- MODELOS ----------
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -67,7 +75,6 @@ class User(db.Model, UserMixin):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# ---------- MODELOS ----------
 class Turma(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
@@ -116,9 +123,11 @@ def criar_etapas():
             db.session.add(Etapa(nome=nome))
     db.session.commit()
 
-with app.app_context():
-    db.create_all()
-    criar_etapas()
+# ---------- NÃO EXECUTE db.create_all() AUTOMATICAMENTE ----------
+# with app.app_context():
+#     db.create_all()
+#     criar_etapas()
+# Use um script separado ou rode manualmente após o deploy.
 
 # ---------- ROTAS DE AUTENTICAÇÃO ----------
 @app.route('/login', methods=['GET', 'POST'])
@@ -554,4 +563,4 @@ def copiar_chamadas(turma_id):
         return redirect(url_for('turma_detail', turma_id=turma_id))
     return render_template('copiar_chamadas.html', turma=turma, turmas=turmas, chamadas=chamadas)
 
-# Não inclua app.run() para produção (Render já executa via Gunicorn)
+# NÃO inclua app.run() para produção (Render já executa via Gunicorn)
