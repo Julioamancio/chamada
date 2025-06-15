@@ -1,24 +1,43 @@
+import os
+import secrets
+from datetime import datetime
+
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
-import pandas as pd
-import os
-from datetime import datetime
-from flask_login import LoginManager, login_user, logout_user, login_required, current_user, UserMixin
+from flask_login import (
+    LoginManager, login_user, logout_user, login_required,
+    current_user, UserMixin
+)
 from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
-import secrets
+from dotenv import load_dotenv
+import pandas as pd
 
+# ---------- CARREGAR VARIÁVEIS DE AMBIENTE (.env) ----------
+load_dotenv()
+
+# ---------- CONFIGURAÇÃO DO APP ----------
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'chave_secreta'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chamada.db'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'chave_secreta')
 app.config['UPLOAD_FOLDER'] = 'uploads'
 
-# ---- CONFIG EMAIL (ajuste para seu provedor) ----
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'SEU_EMAIL@gmail.com'       # <-- Troque aqui
-app.config['MAIL_PASSWORD'] = 'SENHA_DO_APP'              # <-- Troque aqui
+# ---------- CONFIGURAÇÃO DO BANCO DE DADOS (Supabase/PostgreSQL) ----------
+DB_USER = os.getenv("DB_USER", "postgres")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "$b4jtcSMm4B$vn_")
+DB_HOST = os.getenv("DB_HOST", "db.chamada.supabase.co")
+DB_PORT = os.getenv("DB_PORT", "5432")
+DB_NAME = os.getenv("DB_NAME", "postgres")
+app.config['SQLALCHEMY_DATABASE_URI'] = (
+    f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+)
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# ---------- CONFIG EMAIL (ajuste para seu provedor) ----------
+app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'True').lower() in ['true', '1', 'yes']
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME', 'SEU_EMAIL@gmail.com')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD', 'SENHA_DO_APP')
 mail = Mail(app)
 
 db = SQLAlchemy(app)
@@ -26,11 +45,10 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# --- Garante que a pasta de uploads existe (importante para Render/Heroku) ---
-if not os.path.exists(app.config['UPLOAD_FOLDER']):
-    os.makedirs(app.config['UPLOAD_FOLDER'])
+# ---------- GARANTE QUE A PASTA DE UPLOADS EXISTE ----------
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# ---- MODELO DE USUÁRIO ----
+# ---------- MODELO DE USUÁRIO ----------
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -47,7 +65,7 @@ class User(db.Model, UserMixin):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# ---- MODELOS ----
+# ---------- MODELOS ----------
 class Turma(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
@@ -100,8 +118,7 @@ with app.app_context():
     db.create_all()
     criar_etapas()
 
-# ---- ROTAS DE AUTENTICAÇÃO ----
-
+# ---------- ROTAS DE AUTENTICAÇÃO ----------
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
@@ -167,8 +184,7 @@ def reset_token(token):
         return redirect(url_for('login'))
     return render_template('reset_token.html')
 
-# ---- ROTAS DE TURMAS ----
-
+# ---------- ROTAS DE TURMAS ----------
 @app.route('/')
 def home():
     return render_template('home.html')
@@ -296,7 +312,7 @@ def aluno_delete(aluno_id):
     flash('Aluno removido!')
     return redirect(url_for('alunos', turma_id=turma_id))
 
-# --- ATIVIDADES ---
+# ---------- ATIVIDADES ----------
 @app.route('/atividades')
 @login_required
 def atividades():
@@ -353,7 +369,7 @@ def atividade_delete(id):
     flash('Atividade deletada com sucesso!', 'success')
     return redirect(url_for('atividades'))
 
-# --- CHAMADAS POR TURMA ---
+# ---------- CHAMADAS POR TURMA ----------
 @app.route('/chamada/<int:turma_id>', methods=['GET', 'POST'])
 @login_required
 def chamada(turma_id):
