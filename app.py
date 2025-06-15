@@ -24,7 +24,7 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 
 # ---------- CONFIGURAÇÃO DO BANCO DE DADOS (Supabase/PostgreSQL) ----------
 DB_USER = os.getenv("DB_USER", "postgres")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "$b4jtcSMm4B$vn_")  # SUA SENHA DO BANCO, NÃO A API KEY!
+DB_PASSWORD = os.getenv("DB_PASSWORD", "Pedrojulio201282**")  # SUA SENHA DO BANCO, NÃO A API KEY!
 DB_HOST = os.getenv("DB_HOST", "db.kemhqlfhsjolmuhpgyrd.supabase.co")
 DB_PORT = os.getenv("DB_PORT", "5432")
 DB_NAME = os.getenv("DB_NAME", "postgres")
