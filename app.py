@@ -1,7 +1,7 @@
 import os
 import secrets
 from datetime import datetime
-from sqlalchemy import create_engine
+
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (
@@ -12,7 +12,6 @@ from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 import pandas as pd
-import secrets
 
 # ---------- CARREGAR VARIÁVEIS DE AMBIENTE (.env) ----------
 load_dotenv()
@@ -22,10 +21,10 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'chave_secreta')
 app.config['UPLOAD_FOLDER'] = 'uploads'
 
-# ---------- CONFIGURAÇÃO DO BANCO DE DADOS (Supabase/PostgreSQL) ----------
+# ---------- CONFIGURAÇÃO DO BANCO DE DADOS (Render PostgreSQL) ----------
 DB_USER = os.getenv("DB_USER", "postgres")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "Pedrojulio201282**")
-DB_HOST = os.getenv("DB_HOST", "db.kemhqlfhsjolmuhpgyrd.supabase.co")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = os.getenv("DB_PORT", "5432")
 DB_NAME = os.getenv("DB_NAME", "postgres")
 app.config['SQLALCHEMY_DATABASE_URI'] = (
@@ -40,20 +39,14 @@ app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'True').lower() in ['true
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME', 'julioamancio2014@gmail.com')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD', 'bbkdgkdekincbdlq')
 mail = Mail(app)
-# Create the connection string
-connection_string = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
-# Create the SQLAlchemy engine
-engine = create_engine(connection_string)
 db = SQLAlchemy(app)
-
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# ---------- GARANTE QUE A PASTA DE UPLOADS EXISTE ----------
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# ---------- MODELO DE USUÁRIO ----------
+# ---------- MODELOS ----------
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -70,7 +63,6 @@ class User(db.Model, UserMixin):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# ---------- MODELOS ----------
 class Turma(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
@@ -119,9 +111,7 @@ def criar_etapas():
             db.session.add(Etapa(nome=nome))
     db.session.commit()
 
-with app.app_context():
-    db.create_all()
-    criar_etapas()
+# NÃO CHAME db.create_all() AQUI! Use o script create_db.py pelo shell.
 
 # ---------- ROTAS DE AUTENTICAÇÃO ----------
 @app.route('/login', methods=['GET', 'POST'])
