@@ -12,6 +12,7 @@ from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 import pandas as pd
+import secrets
 
 # ---------- CARREGAR VARIÁVEIS DE AMBIENTE (.env) ----------
 load_dotenv()
