@@ -12,7 +12,7 @@ from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 import pandas as pd
-from sqlalchemy.exc import OperationalError
+import secrets
 
 # ---------- CARREGAR VARIÁVEIS DE AMBIENTE (.env) ----------
 load_dotenv()
@@ -24,24 +24,14 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 
 # ---------- CONFIGURAÇÃO DO BANCO DE DADOS (Supabase/PostgreSQL) ----------
 DB_USER = os.getenv("DB_USER", "postgres")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "$b4jtcSMm4B$vn_")  # SUA SENHA DO BANCO, NÃO A API KEY!
+DB_PASSWORD = os.getenv("DB_PASSWORD", "$b4jtcSMm4B$vn_")
 DB_HOST = os.getenv("DB_HOST", "db.kemhqlfhsjolmuhpgyrd.supabase.co")
 DB_PORT = os.getenv("DB_PORT", "5432")
 DB_NAME = os.getenv("DB_NAME", "postgres")
-
 app.config['SQLALCHEMY_DATABASE_URI'] = (
     f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 )
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-# ---------- HEALTHCHECK AMIGÁVEL ----------
-@app.route("/health")
-def health():
-    try:
-        db.session.execute("SELECT 1")
-        return "✅ Banco de dados conectado!"
-    except OperationalError as e:
-        return f"❌ Erro ao conectar ao banco: {e}", 500
 
 # ---------- CONFIG EMAIL (ajuste para seu provedor) ----------
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
@@ -52,12 +42,14 @@ app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD', 'bbkdgkdekincbdlq')
 mail = Mail(app)
 
 db = SQLAlchemy(app)
+
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
+# ---------- GARANTE QUE A PASTA DE UPLOADS EXISTE ----------
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# ---------- MODELOS ----------
+# ---------- MODELO DE USUÁRIO ----------
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -74,6 +66,7 @@ class User(db.Model, UserMixin):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+# ---------- MODELOS ----------
 class Turma(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
@@ -122,8 +115,9 @@ def criar_etapas():
             db.session.add(Etapa(nome=nome))
     db.session.commit()
 
-# NÃO EXECUTE db.create_all() aqui!
-# Crie um arquivo create_db.py e rode manualmente após deploy (te passo se quiser).
+with app.app_context():
+    db.create_all()
+    criar_etapas()
 
 # ---------- ROTAS DE AUTENTICAÇÃO ----------
 @app.route('/login', methods=['GET', 'POST'])
@@ -135,7 +129,7 @@ def login():
         if user and user.check_password(request.form['senha']):
             login_user(user)
             return redirect(url_for('index'))
-        flash('❌ E-mail ou senha inválidos!')
+        flash('E-mail ou senha inválidos!')
     return render_template('login.html')
 
 @app.route('/logout')
@@ -150,13 +144,13 @@ def register():
         return redirect(url_for('index'))
     if request.method == 'POST':
         if User.query.filter_by(email=request.form['email']).first():
-            flash('⚠️ E-mail já cadastrado!')
+            flash('E-mail já cadastrado!')
         else:
             user = User(email=request.form['email'])
             user.set_password(request.form['senha'])
             db.session.add(user)
             db.session.commit()
-            flash('✅ Usuário criado! Faça login.')
+            flash('Usuário criado! Faça login.')
             return redirect(url_for('login'))
     return render_template('register.html')
 
@@ -172,7 +166,7 @@ def reset_request():
             msg = Message("Recuperação de senha", recipients=[user.email],
                           body=f"Clique no link para redefinir sua senha: {link}")
             mail.send(msg)
-            flash('📧 E-mail enviado com instruções para redefinir sua senha!')
+            flash('E-mail enviado com instruções para redefinir sua senha!')
         else:
             flash('Se o e-mail existir, enviaremos um link de recuperação.')
     return render_template('reset_request.html')
@@ -181,13 +175,13 @@ def reset_request():
 def reset_token(token):
     user = User.query.filter_by(reset_token=token).first()
     if not user:
-        flash('❌ Token inválido ou expirado!')
+        flash('Token inválido ou expirado!')
         return redirect(url_for('login'))
     if request.method == 'POST':
         user.set_password(request.form['senha'])
         user.reset_token = None
         db.session.commit()
-        flash('✅ Senha redefinida! Faça login.')
+        flash('Senha redefinida! Faça login.')
         return redirect(url_for('login'))
     return render_template('reset_token.html')
 
@@ -230,7 +224,7 @@ def turma_edit(turma_id):
         if nome:
             turma.nome = nome
             db.session.commit()
-            flash('✅ Turma atualizada com sucesso!')
+            flash('Turma atualizada com sucesso!')
             return redirect(url_for('index'))
     return render_template('turma_form.html', turma=turma)
 
@@ -245,7 +239,7 @@ def turma_delete(turma_id):
         db.session.delete(aluno)
     db.session.delete(turma)
     db.session.commit()
-    flash('✅ Turma deletada com sucesso!')
+    flash('Turma deletada com sucesso!')
     return redirect(url_for('index'))
 
 @app.route('/turmas/<int:turma_id>/importar', methods=['GET', 'POST'])
@@ -255,21 +249,21 @@ def importar_alunos(turma_id):
     if request.method == 'POST':
         arquivo = request.files['arquivo']
         if not arquivo.filename.endswith('.xlsx'):
-            flash('⚠️ Envie um arquivo .xlsx')
+            flash('Envie um arquivo .xlsx')
             return redirect(request.url)
         caminho = os.path.join(app.config['UPLOAD_FOLDER'], arquivo.filename)
         try:
             arquivo.save(caminho)
         except Exception as e:
-            flash(f"❌ Erro ao salvar arquivo: {e}")
+            flash(f"Erro ao salvar arquivo: {e}")
             return redirect(request.url)
         try:
             df = pd.read_excel(caminho, engine='openpyxl')
         except Exception as e:
-            flash(f"❌ Erro ao ler o arquivo Excel: {e}")
+            flash(f"Erro ao ler o arquivo Excel: {e}")
             return redirect(request.url)
         if 'Nome' not in df.columns:
-            flash('⚠️ Arquivo deve ter a coluna "Nome"')
+            flash('Arquivo deve ter a coluna "Nome"')
             return redirect(request.url)
         for nome in df['Nome']:
             if isinstance(nome, str) and nome.strip():
@@ -277,7 +271,7 @@ def importar_alunos(turma_id):
                     aluno = Aluno(nome=nome.strip(), turma=turma)
                     db.session.add(aluno)
         db.session.commit()
-        flash('✅ Importação realizada!')
+        flash('Importação realizada!')
         return redirect(url_for('turma_detail', turma_id=turma_id))
     return render_template('importar_alunos.html', turma=turma)
 
@@ -291,7 +285,7 @@ def alunos(turma_id):
             aluno = Aluno(nome=nome.strip(), turma=turma)
             db.session.add(aluno)
             db.session.commit()
-            flash('✅ Aluno criado!')
+            flash('Aluno criado!')
     return render_template('alunos.html', turma=turma, alunos=turma.alunos)
 
 @app.route('/alunos/edit/<int:aluno_id>', methods=['GET', 'POST'])
@@ -304,7 +298,7 @@ def aluno_edit(aluno_id):
         if nome:
             aluno.nome = nome.strip()
             db.session.commit()
-            flash('✅ Aluno atualizado!')
+            flash('Aluno atualizado!')
             return redirect(url_for('alunos', turma_id=aluno.turma_id))
     return render_template('aluno_form.html', aluno=aluno)
 
@@ -316,7 +310,7 @@ def aluno_delete(aluno_id):
     turma_id = aluno.turma_id
     db.session.delete(aluno)
     db.session.commit()
-    flash('✅ Aluno removido!')
+    flash('Aluno removido!')
     return redirect(url_for('alunos', turma_id=turma_id))
 
 # ---------- ATIVIDADES ----------
@@ -340,7 +334,7 @@ def atividade_add():
             atividade = Atividade(nome=nome, pontuacao=pontuacao, numero_dias=numero_dias, etapa_id=etapa_id)
             db.session.add(atividade)
             db.session.commit()
-            flash('✅ Atividade criada com sucesso!', 'success')
+            flash('Atividade criada com sucesso!', 'success')
             return redirect(url_for('atividades'))
     return render_template('atividade_form.html', etapas=etapas, atividade=None)
 
@@ -360,7 +354,7 @@ def atividade_edit(id):
             atividade.numero_dias = numero_dias
             atividade.etapa_id = etapa_id
             db.session.commit()
-            flash('✅ Atividade atualizada com sucesso!', 'success')
+            flash('Atividade atualizada com sucesso!', 'success')
             return redirect(url_for('atividades'))
     return render_template('atividade_form.html', etapas=etapas, atividade=atividade)
 
@@ -373,7 +367,7 @@ def atividade_delete(id):
         db.session.delete(chamada)
     db.session.delete(atividade)
     db.session.commit()
-    flash('✅ Atividade deletada com sucesso!', 'success')
+    flash('Atividade deletada com sucesso!', 'success')
     return redirect(url_for('atividades'))
 
 # ---------- CHAMADAS POR TURMA ----------
@@ -403,7 +397,7 @@ def chamada(turma_id):
             else:
                 registro.presente = presente
         db.session.commit()
-        flash('✅ Chamada salva!')
+        flash('Chamada salva!')
         return redirect(url_for('turma_detail', turma_id=turma_id))
     return render_template('chamada.html', turma=turma, atividades=atividades, etapas=etapas)
 
@@ -431,7 +425,7 @@ def chamada_edit(chamada_id):
                 novo = Presenca(chamada_id=chamada.id, aluno_id=aluno.id, presente=presente)
                 db.session.add(novo)
         db.session.commit()
-        flash('✅ Chamada editada!')
+        flash('Chamada editada!')
         return redirect(url_for('turma_detail', turma_id=turma.id))
     return render_template('chamada_edit.html', chamada=chamada, turma=turma, atividades=atividades, etapas=etapas, registros=registros)
 
@@ -444,7 +438,7 @@ def chamada_delete(chamada_id):
     Presenca.query.filter_by(chamada_id=chamada.id).delete()
     db.session.delete(chamada)
     db.session.commit()
-    flash('✅ Chamada removida!')
+    flash('Chamada removida!')
     return redirect(url_for('turma_detail', turma_id=turma_id))
 
 @app.route('/relatorio/<int:turma_id>')
@@ -498,7 +492,7 @@ def aluno_add(turma_id):
             aluno = Aluno(nome=nome.strip(), turma=turma)
             db.session.add(aluno)
             db.session.commit()
-            flash('✅ Aluno criado!')
+            flash('Aluno criado!')
             return redirect(url_for('alunos', turma_id=turma_id))
     return render_template('aluno_form.html', turma=turma, aluno=None)
 
@@ -522,7 +516,7 @@ def copiar_atividades(turma_id):
                 )
                 db.session.add(nova)
         db.session.commit()
-        flash('✅ Atividades copiadas com sucesso!')
+        flash('Atividades copiadas com sucesso!')
         return redirect(url_for('turma_detail', turma_id=turma_id))
     return render_template('copiar_atividades.html', turma=turma, turmas=turmas, atividades=atividades)
 
@@ -555,8 +549,8 @@ def copiar_chamadas(turma_id):
                     )
                     db.session.add(presenca)
                 db.session.commit()
-        flash('✅ Chamadas copiadas com sucesso!')
+        flash('Chamadas copiadas com sucesso!')
         return redirect(url_for('turma_detail', turma_id=turma_id))
     return render_template('copiar_chamadas.html', turma=turma, turmas=turmas, chamadas=chamadas)
 
-# NÃO coloque app.run() aqui!
+# Não inclua app.run() para produção.
