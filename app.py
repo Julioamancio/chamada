@@ -46,7 +46,7 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    senha_hash = db.Column(db.Text, nullable=False)  # <-- Corrigido para TEXT
+    senha_hash = db.Column(db.Text, nullable=False)  # Corrigido para aceitar hashes longos!
     reset_token = db.Column(db.String(128), nullable=True)
     turmas = db.relationship('Turma', backref='usuario', lazy=True)
 
@@ -543,4 +543,4 @@ def copiar_chamadas(turma_id):
         return redirect(url_for('turma_detail', turma_id=turma_id))
     return render_template('copiar_chamadas.html', turma=turma, turmas=turmas, chamadas=chamadas)
 
-# Não inclua app.run() para produção.
+# Não inclua app.run() para produção!
