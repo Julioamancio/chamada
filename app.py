@@ -298,6 +298,10 @@ def aluno_delete(aluno_id):
     aluno = Aluno.query.get_or_404(aluno_id)
     turma = Turma.query.filter_by(id=aluno.turma_id, user_id=current_user.id).first_or_404()
     turma_id = aluno.turma_id
+
+    # Apagar registros de presença antes de remover o aluno
+    Presenca.query.filter_by(aluno_id=aluno.id).delete()
+
     db.session.delete(aluno)
     db.session.commit()
     flash('Aluno removido!')
