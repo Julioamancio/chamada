@@ -1,0 +1,612 @@
+{% extends "base.html" %}
+{% block title %}Relatório Detalhado - {{ dados.turma.nome }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho com Ações -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h1 class="h3 mb-1">
+                                <i class="fas fa-chart-bar me-2"></i>
+                                Relatório Detalhado
+                            </h1>
+                            <p class="mb-0">
+                                <i class="fas fa-graduation-cap me-1"></i>
+                                {{ dados.turma.nome }}
+                                {% if dados.periodo.inicio and dados.periodo.fim %}
+                                <span class="ms-3">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    {{ dados.periodo.inicio.strftime('%d/%m/%Y') }} - {{ dados.periodo.fim.strftime('%d/%m/%Y') }}
+                                </span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-auto">
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('relatorios.configurar', turma_id=dados.turma.id) }}" 
+                                   class="btn btn-light">
+                                    <i class="fas fa-cog me-1"></i>
+                                    Configurar
+                                </a>
+                                
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-success dropdown-toggle" 
+                                            data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-download me-1"></i>
+                                        Exportar
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <a class="dropdown-item" href="#" onclick="exportarPDF('completo')">
+                                                <i class="fas fa-file-pdf text-danger me-2"></i>
+                                                PDF Completo
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="#" onclick="exportarPDF('resumido')">
+                                                <i class="fas fa-file-pdf text-danger me-2"></i>
+                                                PDF Resumido
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item" href="#" onclick="exportarExcel()">
+                                                <i class="fas fa-file-excel text-success me-2"></i>
+                                                Planilha Excel
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item" href="#" onclick="window.print()">
+                                                <i class="fas fa-print text-primary me-2"></i>
+                                                Imprimir
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                                
+                                <a href="{{ url_for('relatorios.dashboard') }}" class="btn btn-outline-light">
+                                    <i class="fas fa-arrow-left me-1"></i>
+                                    Dashboard
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards de Estatísticas -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card stats-card bg-primary text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ dados.estatisticas_gerais.total_alunos }}</h4>
+                            <p class="card-text">Total de Alunos</p>
+                        </div>
+                        <div class="stats-icon">
+                            <i class="fas fa-users fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card stats-card bg-success text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ "%.1f"|format(dados.estatisticas_gerais.percentual_presenca_geral) }}%</h4>
+                            <p class="card-text">Presença Geral</p>
+                        </div>
+                        <div class="stats-icon">
+                            <i class="fas fa-chart-pie fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card stats-card bg-info text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ "%.1f"|format(dados.estatisticas_gerais.media_pontuacao) }}</h4>
+                            <p class="card-text">Média da Turma</p>
+                        </div>
+                        <div class="stats-icon">
+                            <i class="fas fa-trophy fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card stats-card bg-warning text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ dados.estatisticas_gerais.total_chamadas }}</h4>
+                            <p class="card-text">Chamadas Realizadas</p>
+                        </div>
+                        <div class="stats-icon">
+                            <i class="fas fa-clipboard-check fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos Interativos -->
+    <div class="row mb-4">
+        <!-- Gráfico de Barras -->
+        <div class="col-lg-8 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        Pontuação por Aluno
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="graficoBarras" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Gráfico de Pizza -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        Distribuição de Presenças
+                    </h5>
+                </div>
+                <div class="card-body d-flex align-items-center justify-content-center">
+                    <canvas id="graficoPizza" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráfico de Linhas -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Evolução da Presença ao Longo do Tempo
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="graficoLinhas" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ranking dos Alunos -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-trophy me-2"></i>
+                                Ranking dos Alunos
+                            </h5>
+                        </div>
+                        <div class="col-auto">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" class="form-control" id="searchRanking" 
+                                       placeholder="Buscar aluno...">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="tabelaRanking">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>Pos.</th>
+                                    <th>Aluno</th>
+                                    <th>Pontuação Total</th>
+                                    <th>Presenças</th>
+                                    <th>Faltas</th>
+                                    <th>% Presença</th>
+                                    {% for etapa in dados.etapas %}
+                                    <th>{{ etapa.nome }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for aluno in dados.ranking %}
+                                <tr>
+                                    <td>
+                                        {% if aluno.posicao <= 3 %}
+                                            {% set medals = {1: 'fas fa-medal text-warning', 2: 'fas fa-medal text-secondary', 3: 'fas fa-medal text-warning'} %}
+                                            <span class="ranking-badge position-{{ aluno.posicao }}">
+                                                <i class="{{ medals[aluno.posicao] }} me-1"></i>
+                                                {{ aluno.posicao }}
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-light text-dark">{{ aluno.posicao }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ aluno.aluno }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ "%.1f"|format(aluno.pontuacao_total) }} pts</span>
+                                    </td>
+                                    <td>
+                                        <span class="text-success">
+                                            <i class="fas fa-check me-1"></i>
+                                            {{ aluno.presencas }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="text-danger">
+                                            <i class="fas fa-times me-1"></i>
+                                            {{ aluno.faltas }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            {% set cor_presenca = 'bg-success' if aluno.percentual_presenca >= 80 else ('bg-warning' if aluno.percentual_presenca >= 60 else 'bg-danger') %}
+                                            <div class="progress-bar {{ cor_presenca }}" 
+                                                 style="width: {{ aluno.percentual_presenca }}%">
+                                                {{ "%.1f"|format(aluno.percentual_presenca) }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                    {% for etapa in dados.etapas %}
+                                    <td>
+                                        {{ "%.1f"|format(aluno.pontuacao_por_etapa.get(etapa.id, 0)) }}
+                                    </td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Análise Estatística -->
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-area me-2"></i>
+                        Análise Estatística
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <div class="stat-item">
+                                <div class="stat-label">Maior Pontuação</div>
+                                <div class="stat-value text-success">
+                                    {{ "%.1f"|format(dados.estatisticas_gerais.maior_pontuacao) }} pts
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="stat-item">
+                                <div class="stat-label">Menor Pontuação</div>
+                                <div class="stat-value text-danger">
+                                    {{ "%.1f"|format(dados.estatisticas_gerais.menor_pontuacao) }} pts
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="stat-item">
+                                <div class="stat-label">Total de Presenças</div>
+                                <div class="stat-value text-primary">
+                                    {{ dados.estatisticas_gerais.total_presencas }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="stat-item">
+                                <div class="stat-label">Total de Faltas</div>
+                                <div class="stat-value text-warning">
+                                    {{ dados.estatisticas_gerais.total_faltas }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-star me-2"></i>
+                        Destaques da Turma
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if dados.ranking|length > 0 %}
+                    <div class="mb-3">
+                        <h6 class="text-success">
+                            <i class="fas fa-crown me-1"></i>
+                            Melhor Aluno
+                        </h6>
+                        <p class="mb-1">
+                            <strong>{{ dados.ranking[0].aluno }}</strong>
+                        </p>
+                        <small class="text-muted">
+                            {{ "%.1f"|format(dados.ranking[0].pontuacao_total) }} pontos • 
+                            {{ "%.1f"|format(dados.ranking[0].percentual_presenca) }}% de presença
+                        </small>
+                    </div>
+                    
+                    {% if dados.ranking|length > 1 %}
+                    <div class="mb-3">
+                        <h6 class="text-info">
+                            <i class="fas fa-chart-line me-1"></i>
+                            Aluno que Mais Melhorou
+                        </h6>
+                        <p class="mb-1">
+                            <strong>{{ dados.ranking[1].aluno }}</strong>
+                        </p>
+                        <small class="text-muted">
+                            {{ "%.1f"|format(dados.ranking[1].pontuacao_total) }} pontos • 
+                            Evolução consistente
+                        </small>
+                    </div>
+                    {% endif %}
+                    
+                    <div>
+                        <h6 class="text-primary">
+                            <i class="fas fa-users me-1"></i>
+                            Status da Turma
+                        </h6>
+                        {% set presenca_geral = dados.estatisticas_gerais.percentual_presenca_geral %}
+                        {% if presenca_geral >= 85 %}
+                        <span class="badge bg-success">Excelente Performance</span>
+                        {% elif presenca_geral >= 70 %}
+                        <span class="badge bg-primary">Boa Performance</span>
+                        {% elif presenca_geral >= 50 %}
+                        <span class="badge bg-warning">Necessita Atenção</span>
+                        {% else %}
+                        <span class="badge bg-danger">Necessita Intervenção</span>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted">
+                        <i class="fas fa-info-circle fa-2x mb-2"></i>
+                        <p>Nenhum dado disponível para análise</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.stats-card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease;
+}
+
+.stats-card:hover {
+    transform: translateY(-2px);
+}
+
+.stats-icon {
+    opacity: 0.7;
+}
+
+.ranking-badge {
+    font-weight: bold;
+}
+
+.position-1 { color: #ffd700; }
+.position-2 { color: #c0c0c0; }
+.position-3 { color: #cd7f32; }
+
+.stat-item {
+    text-align: center;
+    padding: 10px;
+    border-radius: 8px;
+    background: #f8f9fa;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-bottom: 5px;
+}
+
+.stat-value {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+@media print {
+    .btn-group, .input-group {
+        display: none !important;
+    }
+}
+</style>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// Dados dos gráficos passados do backend
+const graficoBarra = {{ grafico_barras|safe }};
+const graficoPizza = {{ grafico_pizza|safe }};
+const graficoLinhas = {{ grafico_linhas|safe }};
+const filtros = {{ filtros|tojson|safe }};
+const turmaId = {{ dados.turma.id }};
+
+// Configuração dos gráficos
+const configGraficos = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: {
+            position: 'top',
+        }
+    }
+};
+
+// Gráfico de Barras - Pontuação por Aluno
+const ctxBarras = document.getElementById('graficoBarras').getContext('2d');
+new Chart(ctxBarras, {
+    type: 'bar',
+    data: {
+        labels: graficoBarra.labels,
+        datasets: [{
+            label: 'Pontuação',
+            data: graficoBarra.dados,
+            backgroundColor: 'rgba(20, 118, 242, 0.8)',
+            borderColor: 'rgba(20, 118, 242, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        ...configGraficos,
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Pontuação'
+                }
+            },
+            x: {
+                title: {
+                    display: true,
+                    text: 'Alunos'
+                }
+            }
+        }
+    }
+});
+
+// Gráfico de Pizza - Distribuição de Presenças
+if (graficoPizza.dados.length > 0 && graficoPizza.dados.some(d => d > 0)) {
+    const ctxPizza = document.getElementById('graficoPizza').getContext('2d');
+    new Chart(ctxPizza, {
+        type: 'pie',
+        data: {
+            labels: graficoPizza.labels,
+            datasets: [{
+                data: graficoPizza.dados,
+                backgroundColor: graficoPizza.cores,
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            ...configGraficos,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+// Gráfico de Linhas - Evolução Temporal
+if (graficoLinhas.labels && graficoLinhas.labels.length > 0) {
+    const ctxLinhas = document.getElementById('graficoLinhas').getContext('2d');
+    new Chart(ctxLinhas, {
+        type: 'line',
+        data: graficoLinhas,
+        options: {
+            ...configGraficos,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Percentual de Presença (%)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Data'
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Busca na tabela de ranking
+document.getElementById('searchRanking').addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase();
+    const rows = document.querySelectorAll('#tabelaRanking tbody tr');
+    
+    rows.forEach(row => {
+        const alunoName = row.cells[1].textContent.toLowerCase();
+        if (alunoName.includes(searchTerm)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+});
+
+// Funções de exportação
+function getParametrosFiltros() {
+    const params = new URLSearchParams();
+    
+    if (filtros.data_inicio) params.append('data_inicio', filtros.data_inicio);
+    if (filtros.data_fim) params.append('data_fim', filtros.data_fim);
+    if (filtros.etapa_id) params.append('etapa_id', filtros.etapa_id);
+    if (filtros.atividade_id) params.append('atividade_id', filtros.atividade_id);
+    
+    return params.toString();
+}
+
+function exportarPDF(tipo) {
+    const params = getParametrosFiltros();
+    const url = `{{ url_for('relatorios.exportar_pdf', turma_id=0) }}`.replace('0', turmaId) + 
+                `?tipo=${tipo}${params ? '&' + params : ''}`;
+    window.open(url, '_blank');
+}
+
+function exportarExcel() {
+    const params = getParametrosFiltros();
+    const url = `{{ url_for('relatorios.exportar_excel', turma_id=0) }}`.replace('0', turmaId) + 
+                `${params ? '?' + params : ''}`;
+    window.open(url, '_blank');
+}
+</script>
+{% endblock %}

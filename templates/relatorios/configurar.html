@@ -1,0 +1,386 @@
+{% extends "base.html" %}
+{% block title %}Configurar Relatório - {{ turma.nome }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient-primary text-white">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h1 class="h3 mb-1">
+                                <i class="fas fa-cog me-2"></i>
+                                Configurar Relatório
+                            </h1>
+                            <p class="mb-0">
+                                <i class="fas fa-graduation-cap me-1"></i>
+                                Turma: <strong>{{ turma.nome }}</strong>
+                            </p>
+                        </div>
+                        <div class="col-auto">
+                            <a href="{{ url_for('relatorios.dashboard') }}" class="btn btn-light">
+                                <i class="fas fa-arrow-left me-1"></i>
+                                Voltar ao Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulário de Filtros -->
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-filter me-2"></i>
+                        Filtros Avançados
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="filtrosForm" method="GET">
+                        <!-- Filtro de Período -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-calendar me-1"></i>
+                                Período
+                            </label>
+                            <div class="row">
+                                <div class="col-6">
+                                    <label class="form-label small">Data Início</label>
+                                    <input type="date" class="form-control" id="data_inicio" name="data_inicio">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small">Data Fim</label>
+                                    <input type="date" class="form-control" id="data_fim" name="data_fim">
+                                </div>
+                            </div>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Deixe em branco para incluir todas as datas
+                            </div>
+                        </div>
+
+                        <!-- Filtro por Etapa -->
+                        <div class="mb-4">
+                            <label for="etapa_id" class="form-label fw-bold">
+                                <i class="fas fa-layer-group me-1"></i>
+                                Etapa Escolar
+                            </label>
+                            <select class="form-select" id="etapa_id" name="etapa_id">
+                                <option value="">Todas as etapas</option>
+                                {% for etapa in etapas %}
+                                <option value="{{ etapa.id }}">{{ etapa.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Filtro por Atividade -->
+                        <div class="mb-4">
+                            <label for="atividade_id" class="form-label fw-bold">
+                                <i class="fas fa-tasks me-1"></i>
+                                Atividade Específica
+                            </label>
+                            <select class="form-select" id="atividade_id" name="atividade_id">
+                                <option value="">Todas as atividades</option>
+                                {% for atividade in atividades %}
+                                <option value="{{ atividade.id }}">
+                                    {{ atividade.nome }} ({{ atividade.pontuacao }} pts)
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Filtros Rápidos -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-clock me-1"></i>
+                                Filtros Rápidos
+                            </label>
+                            <div class="d-grid gap-2">
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="setUltimoMes()">
+                                    <i class="fas fa-calendar-week me-1"></i>
+                                    Último Mês
+                                </button>
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="setUltimaSemana()">
+                                    <i class="fas fa-calendar-day me-1"></i>
+                                    Última Semana
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="limparFiltros()">
+                                    <i class="fas fa-eraser me-1"></i>
+                                    Limpar Filtros
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Botões de Ação -->
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-primary" onclick="aplicarFiltros()">
+                                <i class="fas fa-chart-bar me-1"></i>
+                                Ver Relatório Detalhado
+                            </button>
+                            
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-success dropdown-toggle" 
+                                        data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-download me-1"></i>
+                                    Exportar Agora
+                                </button>
+                                <ul class="dropdown-menu w-100">
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="exportarPDF('completo')">
+                                            <i class="fas fa-file-pdf text-danger me-2"></i>
+                                            PDF Completo
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="exportarPDF('resumido')">
+                                            <i class="fas fa-file-pdf text-danger me-2"></i>
+                                            PDF Resumido
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="exportarExcel()">
+                                            <i class="fas fa-file-excel text-success me-2"></i>
+                                            Planilha Excel
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview e Informações -->
+        <div class="col-lg-8">
+            <div class="row">
+                <!-- Card de Resumo -->
+                <div class="col-12 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Informações da Turma
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3 text-center">
+                                    <div class="stat-box">
+                                        <div class="stat-icon text-primary">
+                                            <i class="fas fa-users fa-2x"></i>
+                                        </div>
+                                        <div class="stat-value">{{ turma.alunos|length }}</div>
+                                        <div class="stat-label">Alunos</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <div class="stat-box">
+                                        <div class="stat-icon text-success">
+                                            <i class="fas fa-clipboard-check fa-2x"></i>
+                                        </div>
+                                        <div class="stat-value">{{ turma.chamadas|length }}</div>
+                                        <div class="stat-label">Chamadas</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <div class="stat-box">
+                                        <div class="stat-icon text-info">
+                                            <i class="fas fa-layer-group fa-2x"></i>
+                                        </div>
+                                        <div class="stat-value">{{ etapas|length }}</div>
+                                        <div class="stat-label">Etapas</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <div class="stat-box">
+                                        <div class="stat-icon text-warning">
+                                            <i class="fas fa-tasks fa-2x"></i>
+                                        </div>
+                                        <div class="stat-value">{{ atividades|length }}</div>
+                                        <div class="stat-label">Atividades</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tipos de Relatório -->
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-file-alt me-2"></i>
+                                Tipos de Relatório Disponíveis
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <div class="report-type-card">
+                                        <div class="report-icon text-danger">
+                                            <i class="fas fa-file-pdf fa-2x"></i>
+                                        </div>
+                                        <h6 class="mt-2">PDF Profissional</h6>
+                                        <ul class="small text-muted">
+                                            <li>Gráficos incorporados</li>
+                                            <li>Layout corporativo</li>
+                                            <li>Ranking dos alunos</li>
+                                            <li>Estatísticas completas</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div class="report-type-card">
+                                        <div class="report-icon text-success">
+                                            <i class="fas fa-file-excel fa-2x"></i>
+                                        </div>
+                                        <h6 class="mt-2">Planilha Excel</h6>
+                                        <ul class="small text-muted">
+                                            <li>Múltiplas abas</li>
+                                            <li>Formatação condicional</li>
+                                            <li>Gráficos nativos</li>
+                                            <li>Filtros automáticos</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div class="report-type-card">
+                                        <div class="report-icon text-primary">
+                                            <i class="fas fa-chart-line fa-2x"></i>
+                                        </div>
+                                        <h6 class="mt-2">Relatório Interativo</h6>
+                                        <ul class="small text-muted">
+                                            <li>Gráficos interativos</li>
+                                            <li>Filtros dinâmicos</li>
+                                            <li>Tabelas ordenáveis</li>
+                                            <li>Visualização moderna</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #1476f2, #0d47a1);
+}
+
+.stat-box {
+    padding: 15px;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #333;
+}
+
+.stat-label {
+    font-size: 0.9em;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.report-type-card {
+    text-align: center;
+    padding: 20px;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    height: 100%;
+    transition: all 0.3s ease;
+}
+
+.report-type-card:hover {
+    border-color: #1476f2;
+    box-shadow: 0 4px 12px rgba(20, 118, 242, 0.1);
+    transform: translateY(-2px);
+}
+
+.report-icon {
+    margin-bottom: 10px;
+}
+</style>
+
+<script>
+const turmaId = {{ turma.id }};
+
+function setUltimoMes() {
+    const hoje = new Date();
+    const umMesAtras = new Date();
+    umMesAtras.setMonth(hoje.getMonth() - 1);
+    
+    document.getElementById('data_inicio').value = umMesAtras.toISOString().split('T')[0];
+    document.getElementById('data_fim').value = hoje.toISOString().split('T')[0];
+}
+
+function setUltimaSemana() {
+    const hoje = new Date();
+    const umaSemanaAtras = new Date();
+    umaSemanaAtras.setDate(hoje.getDate() - 7);
+    
+    document.getElementById('data_inicio').value = umaSemanaAtras.toISOString().split('T')[0];
+    document.getElementById('data_fim').value = hoje.toISOString().split('T')[0];
+}
+
+function limparFiltros() {
+    document.getElementById('filtrosForm').reset();
+}
+
+function getParametrosFiltros() {
+    const params = new URLSearchParams();
+    
+    const dataInicio = document.getElementById('data_inicio').value;
+    const dataFim = document.getElementById('data_fim').value;
+    const etapaId = document.getElementById('etapa_id').value;
+    const atividadeId = document.getElementById('atividade_id').value;
+    
+    if (dataInicio) params.append('data_inicio', dataInicio);
+    if (dataFim) params.append('data_fim', dataFim);
+    if (etapaId) params.append('etapa_id', etapaId);
+    if (atividadeId) params.append('atividade_id', atividadeId);
+    
+    return params.toString();
+}
+
+function aplicarFiltros() {
+    const params = getParametrosFiltros();
+    const url = `{{ url_for('relatorios.detalhado', turma_id=turma.id) }}${params ? '?' + params : ''}`;
+    window.location.href = url;
+}
+
+function exportarPDF(tipo) {
+    const params = getParametrosFiltros();
+    const url = `{{ url_for('relatorios.exportar_pdf', turma_id=turma.id) }}?tipo=${tipo}${params ? '&' + params : ''}`;
+    window.open(url, '_blank');
+}
+
+function exportarExcel() {
+    const params = getParametrosFiltros();
+    const url = `{{ url_for('relatorios.exportar_excel', turma_id=turma.id) }}${params ? '?' + params : ''}`;
+    window.open(url, '_blank');
+}
+
+// Auto-definir data de hoje como padrão para data fim
+document.addEventListener('DOMContentLoaded', function() {
+    const hoje = new Date().toISOString().split('T')[0];
+    document.getElementById('data_fim').max = hoje;
+    document.getElementById('data_inicio').max = hoje;
+});
+</script>
+{% endblock %}

@@ -547,4 +547,11 @@ def copiar_chamadas(turma_id):
         return redirect(url_for('turma_detail', turma_id=turma_id))
     return render_template('copiar_chamadas.html', turma=turma, turmas=turmas, chamadas=chamadas)
 
+# Importar e registrar blueprints de relatórios
+try:
+    from routes.relatorios import relatorios_bp
+    app.register_blueprint(relatorios_bp)
+except ImportError as e:
+    print(f"Aviso: Não foi possível importar rotas de relatórios: {e}")
+
 # Não inclua app.run() para produção!

@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+{% block title %}Dashboard de Relatórios{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho Principal -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-header border-0">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h1 class="card-title mb-0">
+                                <i class="fas fa-chart-bar me-2"></i>
+                                Dashboard de Relatórios
+                            </h1>
+                            <p class="card-text mb-0">Sistema completo de análise e exportação de relatórios escolares</p>
+                        </div>
+                        <div class="col-auto">
+                            <div class="stats-icon">
+                                <i class="fas fa-file-chart-pie fa-3x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards de Recursos -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100 text-center feature-card">
+                <div class="card-body">
+                    <div class="feature-icon text-primary mb-3">
+                        <i class="fas fa-file-pdf fa-2x"></i>
+                    </div>
+                    <h5 class="card-title">PDFs Profissionais</h5>
+                    <p class="card-text text-muted">Relatórios em PDF com gráficos incorporados e layout corporativo</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100 text-center feature-card">
+                <div class="card-body">
+                    <div class="feature-icon text-success mb-3">
+                        <i class="fas fa-file-excel fa-2x"></i>
+                    </div>
+                    <h5 class="card-title">Planilhas Excel</h5>
+                    <p class="card-text text-muted">Arquivos Excel com múltiplas abas, gráficos e formatação avançada</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100 text-center feature-card">
+                <div class="card-body">
+                    <div class="feature-icon text-info mb-3">
+                        <i class="fas fa-chart-line fa-2x"></i>
+                    </div>
+                    <h5 class="card-title">Gráficos Interativos</h5>
+                    <p class="card-text text-muted">Visualizações modernas com Chart.js, barras, pizza e linhas</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100 text-center feature-card">
+                <div class="card-body">
+                    <div class="feature-icon text-warning mb-3">
+                        <i class="fas fa-filter fa-2x"></i>
+                    </div>
+                    <h5 class="card-title">Filtros Avançados</h5>
+                    <p class="card-text text-muted">Período, etapa, atividade e status personalizáveis</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Turmas -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-users me-2"></i>
+                        Selecione uma Turma para Gerar Relatórios
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if turmas %}
+                        <div class="row">
+                            {% for turma in turmas %}
+                            <div class="col-lg-4 col-md-6 mb-3">
+                                <div class="card turma-card h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <h6 class="card-title mb-0">
+                                                <i class="fas fa-graduation-cap text-primary me-2"></i>
+                                                {{ turma.nome }}
+                                            </h6>
+                                            <span class="badge bg-primary">{{ turma.alunos|length }} alunos</span>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <small class="text-muted">
+                                                <i class="fas fa-calendar me-1"></i>
+                                                {{ turma.chamadas|length }} chamadas realizadas
+                                            </small>
+                                        </div>
+
+                                        <div class="d-grid gap-2">
+                                            <a href="{{ url_for('relatorios.detalhado', turma_id=turma.id) }}" 
+                                               class="btn btn-primary btn-sm">
+                                                <i class="fas fa-chart-bar me-1"></i>
+                                                Relatório Detalhado
+                                            </a>
+                                            
+                                            <div class="btn-group" role="group">
+                                                <a href="{{ url_for('relatorios.configurar', turma_id=turma.id) }}" 
+                                                   class="btn btn-outline-secondary btn-sm">
+                                                    <i class="fas fa-cog me-1"></i>
+                                                    Configurar
+                                                </a>
+                                                
+                                                <div class="btn-group" role="group">
+                                                    <button type="button" class="btn btn-outline-success btn-sm dropdown-toggle" 
+                                                            data-bs-toggle="dropdown" aria-expanded="false">
+                                                        <i class="fas fa-download me-1"></i>
+                                                        Exportar
+                                                    </button>
+                                                    <ul class="dropdown-menu">
+                                                        <li>
+                                                            <a class="dropdown-item" 
+                                                               href="{{ url_for('relatorios.exportar_pdf', turma_id=turma.id, tipo='completo') }}">
+                                                                <i class="fas fa-file-pdf text-danger me-2"></i>
+                                                                PDF Completo
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a class="dropdown-item" 
+                                                               href="{{ url_for('relatorios.exportar_pdf', turma_id=turma.id, tipo='resumido') }}">
+                                                                <i class="fas fa-file-pdf text-danger me-2"></i>
+                                                                PDF Resumido
+                                                            </a>
+                                                        </li>
+                                                        <li><hr class="dropdown-divider"></li>
+                                                        <li>
+                                                            <a class="dropdown-item" 
+                                                               href="{{ url_for('relatorios.exportar_excel', turma_id=turma.id) }}">
+                                                                <i class="fas fa-file-excel text-success me-2"></i>
+                                                                Planilha Excel
+                                                            </a>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <div class="mb-4">
+                                <i class="fas fa-users fa-4x text-muted"></i>
+                            </div>
+                            <h4 class="text-muted">Nenhuma turma encontrada</h4>
+                            <p class="text-muted mb-4">Você precisa criar turmas antes de gerar relatórios.</p>
+                            <a href="{{ url_for('index') }}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i>
+                                Gerenciar Turmas
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dicas e Ajuda -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        Dicas para Usar o Sistema de Relatórios
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li class="mb-2">
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    Use <strong>Configurar</strong> para aplicar filtros por período ou etapa
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    Os <strong>PDFs</strong> incluem gráficos incorporados profissionais
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    As <strong>planilhas Excel</strong> possuem múltiplas abas com análises
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li class="mb-2">
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    O <strong>Relatório Detalhado</strong> mostra gráficos interativos
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    Todos os relatórios incluem <strong>ranking</strong> e estatísticas
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    Use filtros para análises <strong>personalizadas</strong>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.feature-card {
+    transition: transform 0.2s ease-in-out;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.feature-icon {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.turma-card {
+    transition: all 0.3s ease;
+    border: 1px solid #e9ecef;
+}
+
+.turma-card:hover {
+    border-color: #1476f2;
+    box-shadow: 0 4px 12px rgba(20, 118, 242, 0.15);
+}
+
+.stats-icon {
+    opacity: 0.7;
+}
+</style>
+{% endblock %}
