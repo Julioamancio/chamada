@@ -440,20 +440,62 @@ def chamada_delete(chamada_id):
 def relatorio(turma_id):
     turma = Turma.query.filter_by(id=turma_id, user_id=current_user.id).first_or_404()
     tipo = request.args.get('tipo', 'detalhado')
+    etapa_filter = request.args.get('etapa_filter', 'todas')  # 'todas', '1', '2', '3'
+    
     alunos = turma.alunos
     etapas = Etapa.query.all()
-    chamadas = Chamada.query.filter_by(turma_id=turma_id).order_by(Chamada.data).all()
+    
+    # Build base query for chamadas with optimized joins
+    chamadas_query = db.session.query(Chamada).join(
+        Atividade, Chamada.atividade_id == Atividade.id
+    ).join(
+        Etapa, Chamada.etapa_id == Etapa.id
+    ).filter(
+        Chamada.turma_id == turma_id
+    )
+    
+    # Apply etapa filter if specified
+    if etapa_filter != 'todas':
+        try:
+            etapa_num = int(etapa_filter)
+            etapa_nome = f"{etapa_num}ª Etapa"
+            chamadas_query = chamadas_query.filter(Etapa.nome == etapa_nome)
+        except ValueError:
+            pass  # Invalid etapa filter, show all
+    
+    chamadas = chamadas_query.order_by(Chamada.data).all()
+    
+    # Pre-load all presencas for these chamadas in one query to avoid N+1
+    chamada_ids = [c.id for c in chamadas]
+    if chamada_ids:
+        presencas_query = db.session.query(Presenca).filter(
+            Presenca.chamada_id.in_(chamada_ids)
+        ).all()
+        # Create lookup dict for fast access
+        presencas_lookup = {}
+        for p in presencas_query:
+            key = (p.chamada_id, p.aluno_id)
+            presencas_lookup[key] = p
+    else:
+        presencas_lookup = {}
+    
+    # Calculate results efficiently
     resultados = []
     for aluno in alunos:
         total = 0
         por_etapa = {etapa.id: 0 for etapa in etapas}
         detalhes = []
+        
         for chamada in chamadas:
             atividade = chamada.atividade
             etapa = chamada.etapa
-            proporcao = atividade.pontuacao / atividade.numero_dias if atividade.numero_dias else 0
-            presenca = Presenca.query.filter_by(chamada_id=chamada.id, aluno_id=aluno.id, presente=True).first()
-            pontos = proporcao if presenca else 0
+            proporcao = atividade.pontuacao / atividade.numero_dias if atividade.numero_dias > 0 else 0
+            
+            # Look up presence efficiently
+            presenca_key = (chamada.id, aluno.id)
+            presenca = presencas_lookup.get(presenca_key)
+            pontos = proporcao if (presenca and presenca.presente) else 0
+            
             total += pontos
             por_etapa[etapa.id] += pontos
             detalhes.append({
@@ -462,18 +504,90 @@ def relatorio(turma_id):
                 "etapa": etapa.nome,
                 "pontuacao": pontos
             })
+        
         resultados.append({
             "aluno": aluno.nome,
             "total": total,
             "por_etapa": por_etapa,
             "detalhes": detalhes
         })
+    
     return render_template(
         'relatorio.html',
         turma=turma,
         resultados=resultados,
         etapas=etapas,
-        tipo=tipo
+        tipo=tipo,
+        etapa_filter=etapa_filter
+    )
+
+@app.route('/relatorio_final/<int:turma_id>')
+@login_required
+def relatorio_final(turma_id):
+    """Relatório final com pontuação detalhada por etapa e somatório total"""
+    turma = Turma.query.filter_by(id=turma_id, user_id=current_user.id).first_or_404()
+    
+    alunos = turma.alunos
+    etapas = Etapa.query.order_by(Etapa.nome).all()
+    
+    # Get all chamadas for this turma with optimized queries
+    chamadas = db.session.query(Chamada).join(
+        Atividade, Chamada.atividade_id == Atividade.id
+    ).join(
+        Etapa, Chamada.etapa_id == Etapa.id
+    ).filter(
+        Chamada.turma_id == turma_id
+    ).order_by(Chamada.data).all()
+    
+    # Pre-load all presencas to avoid N+1 queries
+    chamada_ids = [c.id for c in chamadas]
+    if chamada_ids:
+        presencas_query = db.session.query(Presenca).filter(
+            Presenca.chamada_id.in_(chamada_ids)
+        ).all()
+        presencas_lookup = {}
+        for p in presencas_query:
+            key = (p.chamada_id, p.aluno_id)
+            presencas_lookup[key] = p
+    else:
+        presencas_lookup = {}
+    
+    # Calculate detailed results by etapa
+    resultados_finais = []
+    for aluno in alunos:
+        pontos_por_etapa = {etapa.id: {"pontos": 0, "detalhes": []} for etapa in etapas}
+        total_geral = 0
+        
+        for chamada in chamadas:
+            atividade = chamada.atividade
+            etapa = chamada.etapa
+            proporcao = atividade.pontuacao / atividade.numero_dias if atividade.numero_dias > 0 else 0
+            
+            # Check presence
+            presenca_key = (chamada.id, aluno.id)
+            presenca = presencas_lookup.get(presenca_key)
+            pontos = proporcao if (presenca and presenca.presente) else 0
+            
+            pontos_por_etapa[etapa.id]["pontos"] += pontos
+            pontos_por_etapa[etapa.id]["detalhes"].append({
+                "data": chamada.data,
+                "atividade": atividade.nome,
+                "pontuacao": pontos,
+                "presente": bool(presenca and presenca.presente)
+            })
+            total_geral += pontos
+        
+        resultados_finais.append({
+            "aluno": aluno.nome,
+            "pontos_por_etapa": pontos_por_etapa,
+            "total_geral": total_geral
+        })
+    
+    return render_template(
+        'relatorio_final.html',
+        turma=turma,
+        resultados=resultados_finais,
+        etapas=etapas
     )
 
 @app.route('/alunos/add/<int:turma_id>', methods=['GET', 'POST'])

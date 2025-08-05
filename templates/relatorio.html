@@ -2,15 +2,58 @@
 {% block title %}Relatório {{ turma.nome }}{% endblock %}
 {% block content %}
 <h2><i class="fa-solid fa-file-lines"></i> Relatório de Pontos - {{ turma.nome }}</h2>
-<div class="mb-3 d-flex gap-2">
-    <a href="{{ url_for('relatorio', turma_id=turma.id, tipo='detalhado') }}" class="btn btn-primary {% if tipo == 'detalhado' %}active{% endif %}">
-        <i class="fa-solid fa-table-list"></i> Detalhado
-    </a>
-    <a href="{{ url_for('relatorio', turma_id=turma.id, tipo='simples') }}" class="btn btn-secondary {% if tipo == 'simples' %}active{% endif %}">
-        <i class="fa-solid fa-list"></i> Simples (Nome e Nota)
-    </a>
-    <button onclick="window.print()" class="btn btn-danger"><i class="fa-solid fa-print"></i> Imprimir/Salvar PDF</button>
+
+<!-- Filtro por Etapa -->
+<div class="mb-3">
+    <h5><i class="fa-solid fa-filter"></i> Filtrar por Etapa:</h5>
+    <div class="btn-group" role="group">
+        <a href="{{ url_for('relatorio', turma_id=turma.id, tipo=tipo, etapa_filter='todas') }}" 
+           class="btn btn-outline-primary {% if etapa_filter == 'todas' %}active{% endif %}">
+            <i class="fa-solid fa-list"></i> Todas as Etapas
+        </a>
+        <a href="{{ url_for('relatorio', turma_id=turma.id, tipo=tipo, etapa_filter='1') }}" 
+           class="btn btn-outline-success {% if etapa_filter == '1' %}active{% endif %}">
+            1ª Etapa
+        </a>
+        <a href="{{ url_for('relatorio', turma_id=turma.id, tipo=tipo, etapa_filter='2') }}" 
+           class="btn btn-outline-warning {% if etapa_filter == '2' %}active{% endif %}">
+            2ª Etapa
+        </a>
+        <a href="{{ url_for('relatorio', turma_id=turma.id, tipo=tipo, etapa_filter='3') }}" 
+           class="btn btn-outline-info {% if etapa_filter == '3' %}active{% endif %}">
+            3ª Etapa
+        </a>
+    </div>
 </div>
+
+<!-- Tipo de Relatório -->
+<div class="mb-3">
+    <h5><i class="fa-solid fa-eye"></i> Tipo de Visualização:</h5>
+    <div class="btn-group" role="group">
+        <a href="{{ url_for('relatorio', turma_id=turma.id, tipo='detalhado', etapa_filter=etapa_filter) }}" 
+           class="btn btn-primary {% if tipo == 'detalhado' %}active{% endif %}">
+            <i class="fa-solid fa-table-list"></i> Detalhado
+        </a>
+        <a href="{{ url_for('relatorio', turma_id=turma.id, tipo='simples', etapa_filter=etapa_filter) }}" 
+           class="btn btn-secondary {% if tipo == 'simples' %}active{% endif %}">
+            <i class="fa-solid fa-list"></i> Simples (Nome e Nota)
+        </a>
+    </div>
+</div>
+
+<div class="mb-3">
+    <button onclick="window.print()" class="btn btn-danger">
+        <i class="fa-solid fa-print"></i> Imprimir/Salvar PDF
+    </button>
+</div>
+
+<!-- Indicador da Etapa Selecionada -->
+{% if etapa_filter != 'todas' %}
+<div class="alert alert-info">
+    <i class="fa-solid fa-info-circle"></i> 
+    Mostrando apenas resultados da <strong>{{ etapa_filter }}ª Etapa</strong>
+</div>
+{% endif %}
 
 {% if resultados|length == 0 %}
     <div class="alert alert-warning mt-4">Nenhum aluno cadastrado ou nenhuma chamada feita para esta turma.</div>
@@ -20,10 +63,14 @@
     <thead>
         <tr>
             <th>Aluno</th>
-            <th>Total de Pontos</th>
-            {% for etapa in etapas %}
-            <th>{{ etapa.nome }}</th>
-            {% endfor %}
+            {% if etapa_filter == 'todas' %}
+                <th>Total de Pontos</th>
+                {% for etapa in etapas %}
+                <th>{{ etapa.nome }}</th>
+                {% endfor %}
+            {% else %}
+                <th>Pontos da {{ etapa_filter }}ª Etapa</th>
+            {% endif %}
             <th>Detalhes</th>
         </tr>
     </thead>
@@ -31,10 +78,14 @@
     {% for r in resultados %}
         <tr>
             <td>{{ r.aluno }}</td>
-            <td>{{ '%.1f'|format(r.total) }}</td>
-            {% for etapa in etapas %}
-            <td>{{ '%.1f'|format(r.por_etapa[etapa.id]) }}</td>
-            {% endfor %}
+            {% if etapa_filter == 'todas' %}
+                <td><strong>{{ '%.1f'|format(r.total) }}</strong></td>
+                {% for etapa in etapas %}
+                <td>{{ '%.1f'|format(r.por_etapa[etapa.id]) }}</td>
+                {% endfor %}
+            {% else %}
+                <td><strong>{{ '%.1f'|format(r.total) }}</strong></td>
+            {% endif %}
             <td>
                 <ul class="mb-0">
                 {% for d in r.detalhes %}
@@ -53,19 +104,66 @@
     <thead>
         <tr>
             <th>Aluno</th>
-            <th>Nota Final</th>
+            {% if etapa_filter == 'todas' %}
+                <th>Nota Final</th>
+            {% else %}
+                <th>Nota da {{ etapa_filter }}ª Etapa</th>
+            {% endif %}
         </tr>
     </thead>
     <tbody>
     {% for r in resultados %}
         <tr>
             <td>{{ r.aluno }}</td>
-            <td>{{ '%.1f'|format(r.total) }}</td>
+            <td><strong>{{ '%.1f'|format(r.total) }}</strong></td>
         </tr>
     {% endfor %}
     </tbody>
 </table>
+
+<!-- Resumo Estatístico -->
+{% if resultados|length > 0 %}
+<div class="mt-4">
+    <h5><i class="fa-solid fa-chart-bar"></i> Resumo Estatístico:</h5>
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6>Maior Nota</h6>
+                    <h4 class="text-success">{{ '%.1f'|format(resultados|map(attribute='total')|max) }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6>Menor Nota</h6>
+                    <h4 class="text-danger">{{ '%.1f'|format(resultados|map(attribute='total')|min) }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6>Média da Turma</h6>
+                    <h4 class="text-info">{{ '%.1f'|format((resultados|map(attribute='total')|sum) / (resultados|length)) }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6>Total de Alunos</h6>
+                    <h4 class="text-primary">{{ resultados|length }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endif %}
 {% endif %}
-<a href="{{ url_for('turma_detail', turma_id=turma.id) }}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Voltar</a>
+{% endif %}
+<a href="{{ url_for('turma_detail', turma_id=turma.id) }}" class="btn btn-secondary">
+    <i class="fa-solid fa-arrow-left"></i> Voltar
+</a>
 {% endblock %}

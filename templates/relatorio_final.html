@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}Relatório Final - {{ turma.nome }}{% endblock %}
+{% block content %}
+<h2><i class="fa-solid fa-trophy"></i> Relatório Final - {{ turma.nome }}</h2>
+<p class="lead">Pontuação detalhada por etapa com somatório total</p>
+
+<div class="mb-3">
+    <button onclick="window.print()" class="btn btn-danger">
+        <i class="fa-solid fa-print"></i> Imprimir/Salvar PDF
+    </button>
+    <a href="{{ url_for('relatorio', turma_id=turma.id) }}" class="btn btn-info">
+        <i class="fa-solid fa-table"></i> Relatório Simples
+    </a>
+</div>
+
+{% if resultados|length == 0 %}
+    <div class="alert alert-warning mt-4">Nenhum aluno cadastrado ou nenhuma chamada feita para esta turma.</div>
+{% else %}
+
+<!-- Tabela Principal -->
+<div class="table-responsive">
+    <table class="table table-bordered table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>Aluno</th>
+                {% for etapa in etapas %}
+                <th class="text-center">{{ etapa.nome }}</th>
+                {% endfor %}
+                <th class="text-center bg-primary text-white">Total Geral</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for resultado in resultados %}
+            <tr>
+                <td><strong>{{ resultado.aluno }}</strong></td>
+                {% for etapa in etapas %}
+                <td class="text-center">
+                    <span class="badge bg-secondary fs-6">
+                        {{ '%.1f'|format(resultado.pontos_por_etapa[etapa.id].pontos) }}
+                    </span>
+                </td>
+                {% endfor %}
+                <td class="text-center bg-light">
+                    <strong class="text-primary fs-5">
+                        {{ '%.1f'|format(resultado.total_geral) }}
+                    </strong>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Detalhamento por Etapa -->
+<div class="mt-5">
+    <h3><i class="fa-solid fa-list-check"></i> Detalhamento por Etapa</h3>
+    
+    {% for etapa in etapas %}
+    <div class="card mt-3">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fa-solid fa-calendar-alt"></i> {{ etapa.nome }}
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Aluno</th>
+                            <th class="text-center">Pontuação</th>
+                            <th>Detalhes das Atividades</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for resultado in resultados %}
+                        <tr>
+                            <td>{{ resultado.aluno }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-info">
+                                    {{ '%.1f'|format(resultado.pontos_por_etapa[etapa.id].pontos) }}
+                                </span>
+                            </td>
+                            <td>
+                                <ul class="list-unstyled mb-0">
+                                {% for detalhe in resultado.pontos_por_etapa[etapa.id].detalhes %}
+                                    <li class="small">
+                                        <i class="fa-solid fa-{% if detalhe.presente %}check text-success{% else %}times text-danger{% endif %}"></i>
+                                        {{ detalhe.data.strftime("%d/%m") }} - {{ detalhe.atividade }}: 
+                                        <strong>{{ '%.1f'|format(detalhe.pontuacao) }}</strong> pts
+                                    </li>
+                                {% endfor %}
+                                </ul>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Estatísticas Resumidas -->
+<div class="mt-5">
+    <h3><i class="fa-solid fa-chart-pie"></i> Estatísticas da Turma</h3>
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-success">Maior Nota</h5>
+                    <h3 class="text-success">{{ '%.1f'|format(resultados|map(attribute='total_geral')|max) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-danger">Menor Nota</h5>
+                    <h3 class="text-danger">{{ '%.1f'|format(resultados|map(attribute='total_geral')|min) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-info">Média Geral</h5>
+                    <h3 class="text-info">{{ '%.1f'|format((resultados|map(attribute='total_geral')|sum) / (resultados|length)) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-primary">Total Alunos</h5>
+                    <h3 class="text-primary">{{ resultados|length }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Média por Etapa -->
+    <div class="mt-3">
+        <h5>Média por Etapa:</h5>
+        <div class="row">
+            {% for etapa in etapas %}
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h6 class="card-title">{{ etapa.nome }}</h6>
+                        <h4 class="text-warning">
+                            {% set soma_etapa = resultados|map(attribute='pontos_por_etapa')|map('getitem', etapa.id)|map(attribute='pontos')|sum %}
+                            {{ '%.1f'|format(soma_etapa / (resultados|length)) }}
+                        </h4>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% endif %}
+
+<div class="mt-4">
+    <a href="{{ url_for('turma_detail', turma_id=turma.id) }}" class="btn btn-secondary">
+        <i class="fa-solid fa-arrow-left"></i> Voltar para Turma
+    </a>
+</div>
+
+{% endblock %}
