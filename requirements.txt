@@ -1,0 +1,7 @@
+Flask>=3.0
+Flask-Login>=0.6
+Flask-SQLAlchemy>=3.1
+openpyxl>=3.1
+python-docx>=1.1
+# Gunicorn para execução em produção (Render) — não instala no Windows
+gunicorn>=21.2; platform_system != "Windows"

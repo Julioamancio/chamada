@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+  <h3 class="me-auto">{{ classroom.name }}</h3>
+  <a class="btn btn-outline-secondary me-2" href="{{ url_for('teacher.class_calendar', class_id=classroom.id) }}"><i class="bi bi-calendar3 me-1"></i>Calendário</a>
+  <a class="btn btn-outline-secondary me-2" href="{{ url_for('teacher.import_students', class_id=classroom.id) }}"><i class="bi bi-file-earmark-arrow-up me-1"></i>Importar</a>
+  <a class="btn btn-outline-secondary me-2" href="{{ url_for('teacher.export_csv', class_id=classroom.id) }}"><i class="bi bi-download me-1"></i>CSV</a>
+  <a class="btn btn-outline-primary me-2" href="{{ url_for('teacher.export_class_docx', class_id=classroom.id) }}"><i class="bi bi-file-earmark-word me-1"></i>DOCX Turma</a>
+  <a class="btn btn-secondary" href="{{ url_for('teacher.dashboard') }}"><i class="bi bi-arrow-left-circle me-1"></i>Voltar</a>
+  </div>
+
+<div class="card p-3 mb-3">
+  <form class="row g-2" method="post" action="{{ url_for('teacher.rename_class', class_id=classroom.id) }}">
+    <div class="col-md-10"><input class="form-control" name="name" value="{{ classroom.name }}" required></div>
+    <div class="col-md-2 d-grid"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-pencil-square me-1"></i>Renomear</button></div>
+  </form>
+  </div>
+
+<div class="row g-4">
+  <div class="col-md-6">
+    <div class="card p-3">
+      <h5>Alunos</h5>
+      <form class="d-flex mb-3" method="post" action="{{ url_for('teacher.add_student', class_id=classroom.id) }}">
+        <input class="form-control me-2" name="name" placeholder="Nome do aluno" required>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-person-plus me-1"></i>Adicionar</button>
+      </form>
+      <ul class="list-group">
+        {% for s in students %}
+          <li class="list-group-item">
+            <div class="d-flex align-items-center mb-2">
+              <div class="me-auto d-flex align-items-center"><strong class="me-2">{{ s.name }}</strong><a class="btn btn-sm btn-outline-primary" href="{{ url_for('teacher.export_student_docx', class_id=classroom.id, student_id=s.id) }}" title="Relatório individual (DOCX)"><i class="bi bi-file-earmark-word"></i></a></div>
+              <form method="post" action="{{ url_for('teacher.delete_student', class_id=classroom.id, student_id=s.id) }}" onsubmit="return confirm('Remover aluno?')">
+                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+              </form>
+            </div>
+            <form class="row g-2" method="post" action="{{ url_for('teacher.rename_student', class_id=classroom.id, student_id=s.id) }}">
+              <div class="col-9"><input class="form-control form-control-sm" name="name" value="{{ s.name }}" required></div>
+              <div class="col-3 d-grid"><button class="btn btn-sm btn-outline-primary" type="submit"><i class="bi bi-pencil-square me-1"></i>Renomear</button></div>
+          </form>
+          </li>
+        {% else %}
+          <div class="alert alert-info m-2">Sem alunos. Adicione ou importe via Excel.</div>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card p-3">
+      <div class="d-flex align-items-center mb-2">
+        <h5 class="me-auto">Chamada</h5>
+        <form class="d-flex align-items-center" method="get" action="{{ url_for('teacher.class_detail', class_id=classroom.id) }}">
+          <input class="form-control form-control-sm me-2" type="date" name="date" value="{{ att_date }}">
+          <button class="btn btn-sm btn-outline-secondary" type="submit"><i class="bi bi-arrow-repeat"></i></button>
+        </form>
+      </div>
+      <form id="att-form" method="post" action="{{ url_for('teacher.save_attendance', class_id=classroom.id) }}">
+        <input type="hidden" name="date" value="{{ att_date }}">
+        <div class="list-group">
+          {% for s in students %}
+            <div class="list-group-item d-flex align-items-center">
+              <div class="me-auto">{{ s.name }}</div>
+              <div class="btn-group btn-group-sm" role="group" aria-label="Presença {{ s.name }}">
+                <input type="radio" class="btn-check pa-radio" name="st-{{ s.id }}" id="p-{{ s.id }}" autocomplete="off" data-id="{{ s.id }}" data-val="P" {% if entries.get(s.id) %}checked{% endif %}>
+                <label class="btn btn-outline-success" for="p-{{ s.id }}">P</label>
+                <input type="radio" class="btn-check pa-radio" name="st-{{ s.id }}" id="a-{{ s.id }}" autocomplete="off" data-id="{{ s.id }}" data-val="A" {% if not entries.get(s.id) %}checked{% endif %}>
+                <label class="btn btn-outline-danger" for="a-{{ s.id }}">A</label>
+              </div>
+              <input type="checkbox" class="present-field d-none" name="present" value="{{ s.id }}" {% if entries.get(s.id) %}checked{% endif %}>
+            </div>
+          {% endfor %}
+        </div>
+        <div class="d-flex gap-2 mt-3">
+          <button class="btn btn-outline-secondary" type="button" id="btn-all"><i class="bi bi-check2-all me-1"></i>Todos P</button>
+          <button class="btn btn-outline-secondary" type="button" id="btn-none"><i class="bi bi-x-circle me-1"></i>Todos A</button>
+          <button class="btn btn-success ms-auto" type="submit" {% if current_user.role != 'teacher' %}disabled title="Apenas professores podem salvar"{% endif %}><i class="bi bi-check2-circle me-1"></i>Salvar chamada</button>
+        </div>
+      </form>
+      {% if stages %}
+      <hr/>
+      <form method="post" action="{{ url_for('teacher.bulk_attendance', class_id=classroom.id) }}">
+        {% for s in students %}
+          <input type="checkbox" name="present" value="{{ s.id }}" class="present-copy d-none" {% if entries.get(s.id) %}checked{% endif %}>
+        {% endfor %}
+        <div class="d-flex align-items-center gap-2">
+          <select class="form-select" name="stage_id" required>
+            <option value="">Selecione a etapa…</option>
+            {% for stg in stages %}
+              <option value="{{ stg.id }}">{{ stg.name }} ({{ stg.start }} → {{ stg.end }})</option>
+            {% endfor %}
+          </select>
+          <button class="btn btn-warning" type="submit"><i class="bi bi-collection-check me-1"></i>Salvar em lote na etapa</button>
+        </div>
+      </form>
+      {% endif %}
+      <hr/>
+      <form method="post" action="{{ url_for('teacher.bulk_attendance_range', class_id=classroom.id) }}">
+        {% for s in students %}
+          <input type="checkbox" name="present" value="{{ s.id }}" class="present-copy d-none" {% if entries.get(s.id) %}checked{% endif %}>
+        {% endfor %}
+        <div class="row g-2 align-items-end">
+          <div class="col-6">
+            <label class="form-label">Período início</label>
+            <input class="form-control" type="date" name="start" value="{{ att_date }}" required>
+          </div>
+          <div class="col-6">
+            <label class="form-label">Período fim</label>
+            <input class="form-control" type="date" name="end" value="{{ att_date }}" required>
+          </div>
+          <div class="col-12 d-grid">
+            <button class="btn btn-outline-primary" type="submit" {% if current_user.role != 'teacher' %}disabled title="Apenas professores podem aplicar"{% endif %}><i class="bi bi-calendar2-week me-1"></i>Salvar em lote no período</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+  (function(){
+    const isTeacher = {{ 'true' if current_user.role == 'teacher' else 'false' }};
+    function setPresent(id, present){
+      const hidden = document.querySelector('.present-field[value="'+id+'"]');
+      if(hidden){ hidden.checked = !!present; }
+      // sync copies for bulk forms
+      document.querySelectorAll('.present-copy[value="'+id+'"]').forEach(inp => inp.checked = !!present);
+    }
+    // Bootstrap btn-check radios: update hidden on change
+    document.querySelectorAll('.pa-radio').forEach(r => {
+      r.addEventListener('change', () => {
+        if(!isTeacher) return;
+        const id = parseInt(r.dataset.id,10);
+        setPresent(id, r.dataset.val === 'P');
+      });
+    });
+    // Initialize from current checked radios
+    document.querySelectorAll('.pa-radio:checked').forEach(r => {
+      const id = parseInt(r.dataset.id,10);
+      setPresent(id, r.dataset.val === 'P');
+    });
+    // Bulk toggle buttons
+    document.getElementById('btn-all').addEventListener('click', () => {
+      if(!isTeacher) return;
+      document.querySelectorAll('.pa-radio[data-val="P"]').forEach(r => { r.checked = true; r.dispatchEvent(new Event('change')); });
+    });
+    document.getElementById('btn-none').addEventListener('click', () => {
+      if(!isTeacher) return;
+      document.querySelectorAll('.pa-radio[data-val="A"]').forEach(r => { r.checked = true; r.dispatchEvent(new Event('change')); });
+    });
+  })();
+  </script>
+{% endblock %}
+

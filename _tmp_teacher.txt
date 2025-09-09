@@ -1,0 +1,357 @@
+from __future__ import annotations
+
+from datetime import date
+from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file
+from flask_login import login_required, current_user
+from io import BytesIO
+import csv
+
+from . import db
+from .models import Classroom, Student, Session, AttendanceEntry, get_or_create_today_session, get_or_create_session, Stage
+from .calendar_utils import brazil_national_holidays, generate_teaching_dates
+
+# Compat import: supports both new and old helper names
+try:
+    from .excel import names_from_upload as _get_names
+except Exception:
+    try:
+        from .excel import names_from_first_column as _get_names
+    except Exception:
+        _get_names = None
+
+bp = Blueprint("teacher", __name__, template_folder="templates")
+
+
+def teacher_required(func):
+    from functools import wraps
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return redirect(url_for("auth.login"))
+        if current_user.role not in ("teacher", "admin"):
+            flash("Acesso restrito a professores.", "warning")
+            return redirect(url_for("auth.login"))
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+@bp.route("/")
+@login_required
+@teacher_required
+def dashboard():
+    classes = Classroom.query.filter_by(owner_id=current_user.id).order_by(Classroom.name).all()
+    return render_template("teacher/classes.html", classes=classes)
+
+
+@bp.route("/classes/create", methods=["POST"])
+@login_required
+@teacher_required
+def create_class():
+    name = request.form.get("name", "").strip()
+    if not name:
+        flash("Informe o nome da turma.", "warning")
+        return redirect(url_for("teacher.dashboard"))
+    c = Classroom(name=name, owner_id=current_user.id)
+    db.session.add(c)
+    db.session.commit()
+    flash("Turma criada.", "success")
+    return redirect(url_for("teacher.dashboard"))
+
+
+@bp.route("/classes/<int:class_id>/delete", methods=["POST"])
+@login_required
+@teacher_required
+def delete_class(class_id: int):
+    c = Classroom.query.get_or_404(class_id)
+    if c.owner_id != current_user.id and current_user.role != "admin":
+        flash("Sem permissão.", "danger")
+        return redirect(url_for("teacher.dashboard"))
+    db.session.delete(c)
+    db.session.commit()
+    flash("Turma excluída.", "success")
+    return redirect(url_for("teacher.dashboard"))
+
+
+@bp.route("/classes/<int:class_id>/rename", methods=["POST"])
+@login_required
+@teacher_required
+def rename_class(class_id: int):
+    c = Classroom.query.get_or_404(class_id)
+    if c.owner_id != current_user.id and current_user.role != "admin":
+        flash("Sem permissão.", "danger")
+        return redirect(url_for("teacher.dashboard"))
+    new_name = request.form.get("name", "").strip()
+    if not new_name:
+        flash("Informe o novo nome.", "warning")
+        return redirect(url_for("teacher.dashboard"))
+    c.name = new_name
+    db.session.commit()
+    flash("Turma renomeada.", "success")
+    return redirect(url_for("teacher.dashboard"))
+
+
+@bp.route("/classes/<int:class_id>")
+@login_required
+@teacher_required
+def class_detail(class_id: int):
+    c = Classroom.query.get_or_404(class_id)
+    if c.owner_id != current_user.id and current_user.role != "admin":
+        flash("Sem permissão.", "danger")
+        return redirect(url_for("teacher.dashboard"))
+    from datetime import date
+    dt = request.args.get("date") or date.today().isoformat()
+    students = Student.query.filter_by(class_id=c.id).order_by(Student.name).all()
+    s = get_or_create_session(c, dt)
+    entries = {e.student_id: e.present for e in s.entries}
+    stages = Stage.query.filter_by(class_id=c.id).order_by(Stage.name).all()
+    return render_template("teacher/class_detail.html", classroom=c, students=students, entries=entries, att_date=dt, stages=stages)
+
+
+@bp.route("/classes/<int:class_id>/students/add", methods=["POST"])
+@login_required
+@teacher_required
+def add_student(class_id: int):
+    c = Classroom.query.get_or_404(class_id)
+    if c.owner_id != current_user.id and current_user.role != "admin":
+        flash("Sem permissão.", "danger")
+        return redirect(url_for("teacher.dashboard"))
+    name = request.form.get("name", "").strip()
+    if not name:
+        flash("Nome do aluno é obrigatório.", "warning")
+        return redirect(url_for("teacher.class_detail", class_id=class_id))
+    st = Student(name=name, class_id=class_id)
+    db.session.add(st)
+    db.session.commit()
+    flash("Aluno adicionado.", "success")
+    return redirect(url_for("teacher.class_detail", class_id=class_id))
+
+
+@bp.route("/classes/<int:class_id>/students/<int:student_id>/delete", methods=["POST"])
+@login_required
+@teacher_required
+def delete_student(class_id: int, student_id: int):
+    c = Classroom.query.get_or_404(class_id)
+    if c.owner_id != current_user.id and current_user.role != "admin":
+        flash("Sem permissão.", "danger")
+        return redirect(url_for("teacher.dashboard"))
+    st = Student.query.get_or_404(student_id)
+    db.session.delete(st)
+    db.session.commit()
+    flash("Aluno removido.", "success")
+    return redirect(url_for("teacher.class_detail", class_id=class_id))
+
+
+@bp.route("/classes/<int:class_id>/students/<int:student_id>/rename", methods=["POST"])
+@login_required
+@teacher_required
+def rename_student(class_id: int, student_id: int):
+    c = Classroom.query.get_or_404(class_id)
+    if c.owner_id != current_user.id and current_user.role != "admin":
+        flash("Sem permissão.", "danger")
+        return redirect(url_for("teacher.dashboard"))
+    st = Student.query.get_or_404(student_id)
+    new_name = request.form.get("name", "").strip()
+    if not new_name:
+        flash("Informe o novo nome do aluno.", "warning")
+        return redirect(url_for("teacher.class_detail", class_id=class_id))
+    st.name = new_name
+    db.session.commit()
+    flash("Aluno renomeado.", "success")
+    return redirect(url_for("teacher.class_detail", class_id=class_id))
+
+
+@bp.route("/classes/<int:class_id>/attendance/save", methods=["POST"])
+@login_required
+@teacher_required
+def save_attendance(class_id: int):
+    c = Classroom.query.get_or_404(class_id)
+    if c.owner_id != current_user.id and current_user.role != "admin":
+        flash("Sem permissão.", "danger")
+        return redirect(url_for("teacher.dashboard"))
+    dt = request.form.get("date")
+    from datetime import date as _d
+    dt = dt or _d.today().isoformat()
+    session = get_or_create_session(c, dt)
+    present_ids = set(int(sid) for sid in request.form.getlist("present"))
+    entries_map = {e.student_id: e for e in session.entries}
+    for st in Student.query.filter_by(class_id=c.id).all():
+        e = entries_map.get(st.id)
+        val = st.id in present_ids
+        if e:
+            e.present = val
+        else:
+            db.session.add(AttendanceEntry(session_id=session.id, student_id=st.id, present=val))
+    db.session.commit()
+    flash("Chamada salva.", "success")
+    return redirect(url_for("teacher.class_detail", class_id=class_id, date=dt))
+
+
+@bp.route("/classes/<int:class_id>/calendar", methods=["GET", "POST"])
+@login_required
+@teacher_required
+def class_calendar(class_id: int):
+    c = Classroom.query.get_or_404(class_id)
+    if c.owner_id != current_user.id and current_user.role != "admin":
+        flash("Sem permissão.", "danger")
+        return redirect(url_for("teacher.dashboard"))
+
+    plan = []
+    stages = Stage.query.filter_by(class_id=c.id).order_by(Stage.name).all()
+    ctx = {"classroom": c, "plan": plan, "stages": stages}
+    if request.method == "POST":
+        try:
+            from datetime import datetime
+
+            start = datetime.strptime(request.form.get("start"), "%Y-%m-%d").date()
+            end = datetime.strptime(request.form.get("end"), "%Y-%m-%d").date()
+            weekdays = [int(w) for w in request.form.getlist("weekday")]  # 0..6
+            years = set([start.year, end.year])
+            holidays = set()
+            for y in years:
+                holidays |= brazil_national_holidays(y)
+            dates = generate_teaching_dates(start, end, weekdays, holidays)
+            plan = [d.isoformat() for d in dates]
+            ctx.update({
+                "start": start.isoformat(),
+                "end": end.isoformat(),
+                "weekdays": weekdays,
+                "holidays": sorted([d.isoformat() for d in holidays]),
+                "plan": plan,
+            })
+        except Exception as e:
+            flash(f"Erro ao gerar calendário: {e}", "danger")
+    return render_template("teacher/calendar.html", **ctx)
+
+
+@bp.route("/classes/<int:class_id>/stages/create", methods=["POST"])
+@login_required
+@teacher_required
+def create_stage(class_id: int):
+    c = Classroom.query.get_or_404(class_id)
+    if c.owner_id != current_user.id and current_user.role != "admin":
+        flash("Sem permissão.", "danger")
+        return redirect(url_for("teacher.dashboard"))
+    name = (request.form.get("stage_name") or "").strip()
+    start = request.form.get("start")
+    end = request.form.get("end")
+    weekdays = ",".join(sorted(set(request.form.getlist("weekday"))))
+    if not name or not start or not end or not weekdays:
+        flash("Preencha nome, período e dia(s) da semana.", "warning")
+        return redirect(url_for("teacher.class_calendar", class_id=class_id))
+    stg = Stage(class_id=c.id, name=name, start=start, end=end, weekdays=weekdays)
+    db.session.add(stg)
+    db.session.commit()
+    flash("Etapa criada.", "success")
+    return redirect(url_for("teacher.class_calendar", class_id=class_id))
+
+
+@bp.route("/classes/<int:class_id>/stages/<int:stage_id>/delete", methods=["POST"])
+@login_required
+@teacher_required
+def delete_stage(class_id: int, stage_id: int):
+    c = Classroom.query.get_or_404(class_id)
+    if c.owner_id != current_user.id and current_user.role != "admin":
+        flash("Sem permissão.", "danger")
+        return redirect(url_for("teacher.dashboard"))
+    stg = Stage.query.get_or_404(stage_id)
+    db.session.delete(stg)
+    db.session.commit()
+    flash("Etapa excluída.", "success")
+    return redirect(url_for("teacher.class_calendar", class_id=class_id))
+
+
+@bp.route("/classes/<int:class_id>/attendance/bulk", methods=["POST"])
+@login_required
+@teacher_required
+def bulk_attendance(class_id: int):
+    c = Classroom.query.get_or_404(class_id)
+    if c.owner_id != current_user.id and current_user.role != "admin":
+        flash("Sem permissão.", "danger")
+        return redirect(url_for("teacher.dashboard"))
+    stage_id = request.form.get("stage_id", type=int)
+    stg = Stage.query.get_or_404(stage_id)
+    # Gather students and selected present list
+    present_ids = set(int(sid) for sid in request.form.getlist("present"))
+    # Build dates for the stage
+    from datetime import datetime
+    start = datetime.strptime(stg.start, "%Y-%m-%d").date()
+    end = datetime.strptime(stg.end, "%Y-%m-%d").date()
+    wd = [int(x) for x in stg.weekdays.split(",") if x]
+    holidays = set()
+    for y in {start.year, end.year}:
+        holidays |= brazil_national_holidays(y)
+    dates = generate_teaching_dates(start, end, wd, holidays)
+    # Apply to all dates
+    for d in dates:
+        sess = get_or_create_session(c, d.isoformat())
+        entries_map = {e.student_id: e for e in sess.entries}
+        for st in Student.query.filter_by(class_id=c.id).all():
+            val = st.id in present_ids
+            e = entries_map.get(st.id)
+            if e:
+                e.present = val
+            else:
+                db.session.add(AttendanceEntry(session_id=sess.id, student_id=st.id, present=val))
+    db.session.commit()
+    flash("Chamada em lote aplicada à etapa.", "success")
+    return redirect(url_for("teacher.class_detail", class_id=class_id))
+
+
+@bp.route("/classes/<int:class_id>/import", methods=["GET", "POST"])
+@login_required
+@teacher_required
+def import_students(class_id: int):
+    c = Classroom.query.get_or_404(class_id)
+    if c.owner_id != current_user.id and current_user.role != "admin":
+        flash("Sem permissão.", "danger")
+        return redirect(url_for("teacher.dashboard"))
+    if request.method == "POST":
+        if _get_names is None:
+            flash("Falha do importador. Reinicie o servidor e tente novamente.", "danger")
+            return redirect(url_for("teacher.import_students", class_id=class_id))
+        file = request.files.get("file")
+        if not file or not file.filename:
+            flash("Envie um arquivo .xlsx ou .csv com nomes na coluna A.", "warning")
+            return redirect(url_for("teacher.import_students", class_id=class_id))
+        try:
+            names = _get_names(file)
+        except Exception as e:
+            flash(f"Erro ao ler arquivo: {e}", "danger")
+            return redirect(url_for("teacher.import_students", class_id=class_id))
+        count = 0
+        for n in names:
+            n = n.strip()
+            if not n:
+                continue
+            if not Student.query.filter_by(class_id=class_id, name=n).first():
+                db.session.add(Student(name=n, class_id=class_id))
+                count += 1
+        db.session.commit()
+        flash(f"Importação concluída: {count} aluno(s) adicionados.", "success")
+        return redirect(url_for("teacher.class_detail", class_id=class_id))
+    return render_template("teacher/import.html", classroom=c)
+
+
+@bp.route("/classes/<int:class_id>/export.csv")
+@login_required
+@teacher_required
+def export_csv(class_id: int):
+    c = Classroom.query.get_or_404(class_id)
+    if c.owner_id != current_user.id and current_user.role != "admin":
+        flash("Sem permissão.", "danger")
+        return redirect(url_for("teacher.dashboard"))
+
+    output = BytesIO()
+    writer = csv.writer(output)
+    writer.writerow(["date", "student", "present"])
+    sessions = Session.query.filter_by(class_id=c.id).order_by(Session.date).all()
+    students = {s.id: s.name for s in Student.query.filter_by(class_id=c.id).all()}
+    for s in sessions:
+        entries = {e.student_id: e.present for e in s.entries}
+        for sid, name in students.items():
+            writer.writerow([s.date, name, "yes" if entries.get(sid) else "no"])
+    output.seek(0)
+    return send_file(output, as_attachment=True, download_name=f"{c.name}.csv", mimetype="text/csv")
+

@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: chamada-escolar
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -w 2 -k gthread -b 0.0.0.0:$PORT app:app
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: CHAMADA_DATA_DIR
+        value: /opt/render/project/src/instance
+      - key: BACKUP_INTERVAL_MIN
+        value: "30"
