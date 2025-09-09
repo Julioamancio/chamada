@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+  <h3 class="me-auto">Calendario — {{ classroom.name }}</h3>
+  <a class="btn btn-secondary" href="{{ url_for('teacher.class_detail', class_id=classroom.id) }}"><i class="bi bi-arrow-left-circle me-1"></i>Voltar</a>
+</div>
+
+<div class="card p-3 mb-3">
+  <h5 class="mb-3">Cadastrar etapa</h5>
+  <form method="post" action="{{ url_for('teacher.create_stage', class_id=classroom.id) }}" class="row g-2 align-items-end">
+    <div class="col-md-3"><label class="form-label">Nome</label><input class="form-control" name="stage_name" placeholder="Ex.: 1o bimestre" required></div>
+    <div class="col-md-3"><label class="form-label">Inicio</label><input class="form-control" type="date" name="start" required></div>
+    <div class="col-md-3"><label class="form-label">Fim</label><input class="form-control" type="date" name="end" required></div>
+    <div class="col-md-2">
+      <label class="form-label">Dias</label>
+      <div class="d-flex flex-wrap gap-2">
+        {% for i, n in [(0,'Seg'),(1,'Ter'),(2,'Qua'),(3,'Qui'),(4,'Sex'),(5,'Sab'),(6,'Dom')] %}
+        <div class="form-check"><input class="form-check-input" type="checkbox" name="weekday" value="{{i}}" id="s{{i}}"><label class="form-check-label" for="s{{i}}">{{n}}</label></div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="col-md-1 d-grid"><button class="btn btn-success" type="submit"><i class="bi bi-save2 me-1"></i>Salvar</button></div>
+  </form>
+</div>
+
+{% if stages %}
+<div class="card p-3 mb-3">
+  <h5 class="mb-3">Etapas cadastradas</h5>
+  <div class="table-responsive">
+    <table class="table table-sm">
+      <thead><tr><th>Nome</th><th>Periodo</th><th>Dias</th><th class="text-end">Acoes</th></tr></thead>
+      <tbody>
+        {% for e in stages %}
+        <tr>
+          <td>{{ e.name }}</td>
+          <td>{{ e.start }} -> {{ e.end }}</td>
+          <td>{{ e.weekdays }}</td>
+          <td class="text-end">
+            <a class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="collapse" href="#edit-stage-{{ e.id }}" role="button" aria-expanded="false" aria-controls="edit-stage-{{ e.id }}"><i class="bi bi-pencil-square"></i> Editar</a>
+            <form method="post" action="{{ url_for('teacher.delete_stage', class_id=classroom.id, stage_id=e.id) }}" onsubmit="return confirm('Excluir etapa?')" class="d-inline">
+              <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+        <tr class="collapse" id="edit-stage-{{ e.id }}">
+          <td colspan="4">
+            <form method="post" action="{{ url_for('teacher.update_stage', class_id=classroom.id, stage_id=e.id) }}" class="row g-2 align-items-end">
+              <div class="col-md-3"><label class="form-label">Nome</label><input class="form-control" name="stage_name" value="{{ e.name }}" required></div>
+              <div class="col-md-3"><label class="form-label">Inicio</label><input class="form-control" type="date" name="start" value="{{ e.start }}" required></div>
+              <div class="col-md-3"><label class="form-label">Fim</label><input class="form-control" type="date" name="end" value="{{ e.end }}" required></div>
+              <div class="col-md-2">
+                <label class="form-label">Dias</label>
+                <div class="d-flex flex-wrap gap-2">
+                  {% set wds = (e.weekdays or '').split(',') %}
+                  {% for i, n in [(0,'Seg'),(1,'Ter'),(2,'Qua'),(3,'Qui'),(4,'Sex'),(5,'Sab'),(6,'Dom')] %}
+                  <div class="form-check"><input class="form-check-input" type="checkbox" name="weekday" value="{{i}}" id="e{{e.id}}d{{i}}" {% if (i|string) in wds %}checked{% endif %}><label class="form-check-label" for="e{{e.id}}d{{i}}">{{n}}</label></div>
+                  {% endfor %}
+                </div>
+              </div>
+              <div class="col-md-1 d-grid"><button class="btn btn-success" type="submit"><i class="bi bi-save2 me-1"></i>Salvar</button></div>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<div class="card p-3">
+  <h5 class="mb-2">Vincular etapas globais</h5>
+  <form method="post" action="{{ url_for('teacher.link_global_stages', class_id=classroom.id) }}">
+    <div class="row g-2">
+      {% for g in global_stages %}
+        <div class="col-md-4">
+          <label class="border rounded p-2 w-100">
+            <input class="form-check-input me-2" type="checkbox" name="template_id" value="{{ g.id }}">
+            <strong>{{ g.name }}</strong><br/>
+            <span class="text-muted small">{{ g.start }} → {{ g.end }} | Dias: {{ g.weekdays }}</span>
+          </label>
+        </div>
+      {% else %}
+        <div class="col-12 text-muted">Nenhuma etapa global cadastrada. <a href="{{ url_for('teacher.global_stages') }}">Criar agora</a>.</div>
+      {% endfor %}
+    </div>
+    <div class="d-grid mt-3">
+      <button class="btn btn-outline-primary" type="submit"><i class="bi bi-link-45deg me-1"></i>Vincular selecionadas à turma</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

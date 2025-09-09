@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+  <h3 class="me-auto">Usuários</h3>
+  <a class="btn btn-secondary me-2" href="{{ url_for('teacher.dashboard') }}">Área do Professor</a>
+  <a class="btn btn-outline-primary me-2" href="{{ url_for('admin.classes') }}">Turmas</a>
+  <a class="btn btn-outline-secondary" href="{{ url_for('auth.logout') }}">Sair</a>
+  </div>
+
+<form class="card p-3 mb-4" method="post" action="{{ url_for('admin.create_user') }}">
+  <div class="row g-2">
+    <div class="col-md-3"><input class="form-control" name="name" placeholder="Nome" required></div>
+    <div class="col-md-3"><input class="form-control" type="email" name="email" placeholder="E-mail" required></div>
+    <div class="col-md-3"><input class="form-control" type="password" name="password" placeholder="Senha" required></div>
+    <div class="col-md-2">
+      <select class="form-select" name="role">
+        <option value="teacher">Professor</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <div class="col-md-1 d-grid"><button class="btn btn-primary" type="submit">Criar</button></div>
+  </div>
+  </form>
+
+<table class="table table-striped">
+  <thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th style="width:30%">Ações</th></tr></thead>
+  <tbody>
+  {% for u in users %}
+    <tr>
+      <form class="row g-2 align-items-center" method="post" action="{{ url_for('admin.edit_user', user_id=u.id) }}">
+        <td class="col-md-3"><input class="form-control form-control-sm" name="name" value="{{ u.name }}" required></td>
+        <td class="col-md-4"><input class="form-control form-control-sm" type="email" name="email" value="{{ u.email }}" required></td>
+        <td class="col-md-2">
+          <select class="form-select form-select-sm" name="role">
+            <option value="teacher" {% if u.role=='teacher' %}selected{% endif %}>Professor</option>
+            <option value="admin" {% if u.role=='admin' %}selected{% endif %}>Admin</option>
+          </select>
+        </td>
+        <td class="col-md-3">
+          <div class="d-flex gap-2">
+            <input class="form-control form-control-sm" type="password" name="password" placeholder="Nova senha (opcional)">
+            <button class="btn btn-sm btn-primary" type="submit">Salvar</button>
+            <form method="post" action="{{ url_for('admin.delete_user', user_id=u.id) }}" onsubmit="return confirm('Excluir este usuário?')">
+              <button class="btn btn-sm btn-outline-danger" type="submit">Excluir</button>
+            </form>
+          </div>
+        </td>
+      </form>
+    </tr>
+  {% endfor %}
+  </tbody>
+  </table>
+{% endblock %}

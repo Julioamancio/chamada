@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+  <h3 class="me-auto">Turmas</h3>
+  <a class="btn btn-secondary" href="{{ url_for('admin.dashboard') }}">Usuários</a>
+</div>
+
+<div class="card p-3 mb-4">
+  <h5 class="mb-3">Criar turma</h5>
+  <form class="row g-2" method="post" action="{{ url_for('admin.create_class_admin') }}">
+    <div class="col-md-5"><input class="form-control" name="name" placeholder="Nome da turma" required></div>
+    <div class="col-md-5">
+      <select class="form-select" name="owner_id" required>
+        <option value="">Selecione o professor</option>
+        {% for t in teachers %}
+          <option value="{{ t.id }}">{{ t.name }} — {{ t.email }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2 d-grid"><button class="btn btn-primary" type="submit">Criar</button></div>
+  </form>
+</div>
+
+<div class="card p-3">
+  <h5 class="mb-3">Turmas existentes</h5>
+  <div class="table-responsive">
+    <table class="table table-striped">
+      <thead><tr><th>Turma</th><th>Professor</th><th style="width:30%">Vincular / Ações</th></tr></thead>
+      <tbody>
+        {% for c in classes %}
+          <tr>
+            <td>
+              <form class="d-flex gap-2" method="post" action="{{ url_for('admin.rename_class_admin', class_id=c.id) }}">
+                <input class="form-control" name="name" value="{{ c.name }}" required>
+                <button class="btn btn-outline-primary" type="submit">Renomear</button>
+              </form>
+            </td>
+            <td>
+              {% set owner = teachers | selectattr('id','equalto', c.owner_id) | first %}
+              {{ owner.name if owner else '—' }}
+            </td>
+            <td>
+              <form class="d-flex gap-2" method="post" action="{{ url_for('admin.reassign_class', class_id=c.id) }}">
+                <select class="form-select" name="owner_id" required>
+                  {% for t in teachers %}
+                    <option value="{{ t.id }}" {% if t.id == c.owner_id %}selected{% endif %}>{{ t.name }}</option>
+                  {% endfor %}
+                </select>
+                <button class="btn btn-outline-primary" type="submit">Vincular</button>
+              </form>
+              <form class="mt-2" method="post" action="{{ url_for('admin.delete_class_admin', class_id=c.id) }}" onsubmit="return confirm('Excluir turma e todos os dados?')">
+                <button class="btn btn-outline-danger">Excluir turma</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="3">Nenhuma turma cadastrada.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+  <h3 class="me-auto">Relatórios — {{ classroom.name }}</h3>
+  <a class="btn btn-secondary" href="{{ url_for('teacher.class_detail', class_id=classroom.id) }}"><i class="bi bi-arrow-left-circle me-1"></i>Voltar</a>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <h5 class="mb-3">Relatório Geral da Turma</h5>
+      <p class="text-muted">Documento Word (.docx) com cabeçalho, tabela de presenças/ausências e percentual por aluno, pronto para envio à coordenação.</p>
+      <div class="row g-2 align-items-end">
+        <div class="col">
+          <label class="form-label">Etapa (opcional)</label>
+          <select id="rptStageAll" class="form-select">
+            <option value="">Todas as aulas</option>
+            {% for stg in stages %}
+              <option value="{{ stg.id }}">{{ stg.name }} ({{ stg.start }} → {{ stg.end }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-auto">
+          <a id="linkAll" class="btn btn-primary" href="{{ url_for('teacher.export_class_docx', class_id=classroom.id) }}"><i class="bi bi-file-earmark-word me-1"></i>Baixar DOCX da Turma</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <h5 class="mb-3">Relatório Individual</h5>
+      <div class="mb-2">
+        <label class="form-label">Etapa (opcional)</label>
+        <select id="rptStageInd" class="form-select">
+          <option value="">Todas as aulas</option>
+          {% for stg in stages %}
+            <option value="{{ stg.id }}">{{ stg.name }} ({{ stg.start }} → {{ stg.end }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="list-group">
+        {% for s in students %}
+          <a class="list-group-item d-flex align-items-center stu-link" href="{{ url_for('teacher.export_student_docx', class_id=classroom.id, student_id=s.id) }}">
+            <span class="me-auto">{{ s.name }}</span>
+            <i class="bi bi-file-earmark-word"></i>
+          </a>
+        {% else %}
+          <div class="alert alert-info m-2">Sem alunos na turma.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  (function(){
+    const linkAll = document.getElementById('linkAll');
+    const selAll = document.getElementById('rptStageAll');
+    const selInd = document.getElementById('rptStageInd');
+    function updAll(){
+      const base = '{{ url_for('teacher.export_class_docx', class_id=classroom.id) }}';
+      linkAll.href = selAll.value ? base + '?stage_id=' + selAll.value : base;
+    }
+    function updInd(){
+      const sid = selInd.value;
+      document.querySelectorAll('.stu-link').forEach(a => {
+        const url = new URL(a.href, window.location.origin);
+        if(sid){ url.searchParams.set('stage_id', sid); }
+        else{ url.searchParams.delete('stage_id'); }
+        a.href = url.pathname + url.search;
+      });
+    }
+    selAll?.addEventListener('change', updAll);
+    selInd?.addEventListener('change', updInd);
+    updAll(); updInd();
+  })();
+  </script>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+  <h3 class="me-auto">Branding</h3>
+  <a class="btn btn-secondary" href="{{ url_for('admin.dashboard') }}">Voltar</a>
+</div>
+
+<div class="card p-3">
+  <form method="post" enctype="multipart/form-data">
+    <div class="mb-3">
+      <label class="form-label">Logo (PNG/JPG/SVG)</label>
+      <input class="form-control" type="file" name="logo" accept=".png,.jpg,.jpeg,.svg" required>
+    </div>
+    <button class="btn btn-primary" type="submit">Enviar</button>
+  </form>
+  <hr/>
+  <div class="text-muted">O logo será exibido no canto superior esquerdo.</div>
+</div>
+{% endblock %}
+

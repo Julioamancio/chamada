@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+  <h3 class="me-auto">Configuracoes</h3>
+  <a class="btn btn-secondary" href="{{ url_for('admin.dashboard') }}">Voltar</a>
+  </div>
+
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <h5 class="mb-3">Perfil do administrador</h5>
+      <form method="post" action="{{ url_for('admin.update_profile') }}">
+        <div class="mb-2">
+          <label class="form-label">Nome</label>
+          <input class="form-control" type="text" name="name" value="{{ current_user.name }}" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">E-mail</label>
+          <input class="form-control" type="email" name="email" value="{{ current_user.email }}" required>
+        </div>
+        <button class="btn btn-primary" type="submit">Salvar perfil</button>
+      </form>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <h5 class="mb-3">Logo da aplicacao</h5>
+      <form method="post" enctype="multipart/form-data" action="{{ url_for('admin.settings_logo') }}">
+        <div class="mb-3">
+          <label class="form-label">Arquivo (PNG/JPG/SVG)</label>
+          <input class="form-control" type="file" name="logo" accept=".png,.jpg,.jpeg,.svg" required>
+        </div>
+        <button class="btn btn-primary" type="submit">Enviar</button>
+      </form>
+      <div class="text-muted mt-3 small">O logo aparece no topo da lateral.</div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <h5 class="mb-3">Backup do banco de dados</h5>
+      <p class="text-muted">Baixe uma cópia do arquivo SQLite atual.</p>
+      <a class="btn btn-outline-primary" href="{{ url_for('admin.export_db') }}">
+        Baixar backup (app.db)
+      </a>
+      <hr/>
+      <h6 class="mb-2">Importar banco (.db)</h6>
+      <form method="post" action="{{ url_for('admin.import_db') }}" enctype="multipart/form-data">
+        <div class="mb-2">
+          <input class="form-control" type="file" name="dbfile" accept=".db" required>
+        </div>
+        <button class="btn btn-outline-danger" type="submit" onclick="return confirm('Substituirá o banco atual (um backup será criado). Continuar?')">Importar e substituir</button>
+      </form>
+      <div class="small text-muted mt-3">
+        Local atual do banco: <code>{{ db_path }}</code> ({{ (db_bytes or 0) }} bytes)
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <h5 class="mb-3">Alterar senha do administrador</h5>
+      <form method="post" action="{{ url_for('admin.change_password') }}">
+        <div class="mb-2">
+          <label class="form-label">Nova senha</label>
+          <input class="form-control" type="password" name="new_password" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Confirmacao da senha</label>
+          <input class="form-control" type="password" name="confirm_password" required>
+        </div>
+        <button class="btn btn-warning" type="submit">Atualizar senha</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

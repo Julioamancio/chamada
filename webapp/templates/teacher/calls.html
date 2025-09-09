@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+  <h3 class="me-auto">Chamadas — {{ classroom.name }}</h3>
+  <a class="btn btn-secondary" href="{{ url_for('teacher.class_detail', class_id=classroom.id) }}"><i class="bi bi-arrow-left-circle me-1"></i>Voltar</a>
+</div>
+
+<div class="card p-3 mb-3">
+  <form class="row g-2 align-items-end" method="get" action="">
+    <div class="col-md-4">
+      <label class="form-label">Etapa</label>
+      <select class="form-select" name="stage_id" onchange="this.form.submit()">
+        <option value="">Todas as aulas</option>
+        {% for stg in stages %}
+          <option value="{{ stg.id }}" {% if selected_stage and selected_stage == stg.id %}selected{% endif %}>{{ stg.name }} ({{ stg.start }} → {{ stg.end }})</option>
+        {% endfor %}
+      </select>
+    </div>
+  </form>
+</div>
+
+<div class="card p-3">
+  <div class="table-responsive">
+    <table class="table table-sm">
+      <thead><tr><th>Data</th><th>Presentes</th><th>Ausentes</th><th>Etapa</th><th></th></tr></thead>
+      <tbody>
+        {% for r in rows %}
+          <tr>
+            <td>{{ r.date }}</td>
+            <td>{{ r.present }}</td>
+            <td>{{ r.absent }}</td>
+            <td>{{ r.stage or '-' }}</td>
+            <td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('teacher.class_detail', class_id=classroom.id, date=r.date) }}"><i class="bi bi-eye"></i> Ver</a></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" class="text-muted">Nenhuma chamada registrada para o filtro selecionado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
