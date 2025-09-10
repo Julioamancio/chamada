@@ -60,8 +60,8 @@
       h2{ font-size: clamp(1.15rem, 1rem + 1.6vw, 1.6rem); }
       h3{ font-size: clamp(1.05rem, 0.95rem + 1vw, 1.35rem); }
 
-      /* Logo sizing to avoid taking too much space */
-      .brand-logo{ max-height: 28px; max-width: 120px; height:auto; width:auto; object-fit:contain; }
+      /* Logo sizing (equilibrado desktop/tablet/celular) */
+      .brand-logo{ max-height: 32px; max-width: 140px; height:auto; width:auto; object-fit:contain; }
 
       /* Strong active styles for toggle radios */
       .btn-check:checked + .btn-outline-success,
@@ -85,12 +85,12 @@
         .sidebar .nav .btn i{ margin:0 !important; font-size:1.1rem; }
         /* No mobile/tablet we auto-collapse; hide toggle button */
         .sidebar .toggle{ display:none; }
-        .brand-logo{ max-height: 24px; max-width: 100px; }
+        .brand-logo{ max-height: 30px; max-width: 120px; }
       }
       @media (max-width: 575.98px) {
         .card{ padding: 1rem !important; }
         .main-wrapper{ padding: 1rem !important; }
-        .brand-logo{ max-height: 20px; max-width: 88px; }
+        .brand-logo{ max-height: 26px; max-width: 76px; }
         .btn{ padding: .35rem .6rem; font-size: .95rem; }
       }
 
