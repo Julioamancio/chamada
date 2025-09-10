@@ -25,6 +25,12 @@ instance/
 # Test cache
 .pytest_cache/
 
+# Local secrets/config (do not commit)
+chaves_gerais
+.env
+.env.local
+*.key
+
 scripts/id_ed25519*
 
 NUL
