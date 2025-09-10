@@ -79,6 +79,17 @@
         .card{ padding: 1rem !important; }
         .main-wrapper{ padding: 1rem !important; }
       }
+
+      /* Cabeçalhos e botões responsivos */
+      .page-head{ flex-wrap: wrap; gap: .5rem; }
+      .page-head h3{ margin: 0; font-size: clamp(1.125rem, 1rem + 1.2vw, 1.5rem); }
+      @media (max-width: 575.98px) {
+        .page-head h3{ flex: 0 0 100%; }
+        .page-head .btn{ width: 100%; }
+      }
+
+      /* Evitar sobreposição quando textos de botões são longos */
+      .btn{ white-space: normal; }
     </style>
   </head>
   <body>

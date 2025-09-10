@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="d-flex align-items-center mb-3">
+<div class="page-head d-flex align-items-center mb-3">
   <h3 class="me-auto">Minhas turmas</h3>
   {% if current_user.role == 'admin' %}
   <a class="btn btn-outline-secondary me-2" href="{{ url_for('admin.dashboard') }}">Admin</a>

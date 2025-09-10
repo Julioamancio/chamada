@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="d-flex align-items-center mb-3">
+<div class="page-head d-flex align-items-center mb-3">
   <h3 class="me-auto">{{ classroom.name }}</h3>
   <a class="btn btn-outline-secondary me-2" href="{{ url_for('teacher.class_calendar', class_id=classroom.id) }}"><i class="bi bi-calendar3 me-1"></i>Calendário</a>
   <a class="btn btn-outline-secondary me-2" href="{{ url_for('teacher.import_students', class_id=classroom.id) }}"><i class="bi bi-file-earmark-arrow-up me-1"></i>Importar</a>
@@ -21,8 +21,8 @@
   <div class="col-md-6">
     <div class="card p-3">
       <h5>Alunos</h5>
-      <form class="d-flex mb-3" method="post" action="{{ url_for('teacher.add_student', class_id=classroom.id) }}">
-        <input class="form-control me-2" name="name" placeholder="Nome do aluno" required>
+      <form class="d-flex flex-column flex-sm-row gap-2 mb-3" method="post" action="{{ url_for('teacher.add_student', class_id=classroom.id) }}">
+        <input class="form-control" name="name" placeholder="Nome do aluno" required>
         <button class="btn btn-primary" type="submit"><i class="bi bi-person-plus me-1"></i>Adicionar</button>
       </form>
       <ul class="list-group">
