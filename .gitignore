@@ -24,3 +24,5 @@ instance/
 
 # Test cache
 .pytest_cache/
+
+scripts/id_ed25519*
