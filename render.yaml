@@ -8,6 +8,10 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: CHAMADA_DATA_DIR
-        value: /opt/render/project/src/instance
+        value: /data
       - key: BACKUP_INTERVAL_MIN
         value: "30"
+    disk:
+      name: data
+      mountPath: /data
+      sizeGB: 1

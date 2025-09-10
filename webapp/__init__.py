@@ -75,6 +75,24 @@ def create_app() -> Flask:
 
     _maybe_migrate_legacy_db()
 
+    # Ensure a default logo is persisted on first run
+    def _ensure_default_logo():
+        try:
+            from shutil import copy2 as _copy2
+            folder = Path(app.instance_path) / "branding"
+            folder.mkdir(parents=True, exist_ok=True)
+            # If there's already any logo file, keep it
+            if any(folder.glob("logo.*")):
+                return
+            default_src = Path(__file__).resolve().parent / "static" / "logo_default.svg"
+            if default_src.exists():
+                _copy2(default_src, folder / "logo.svg")
+        except Exception:
+            # Never crash on branding setup
+            pass
+
+    _ensure_default_logo()
+
     # Init extensions
     db.init_app(app)
     login_manager.init_app(app)
