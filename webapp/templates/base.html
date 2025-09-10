@@ -54,6 +54,15 @@
 
       .main-wrapper{ flex:1; min-width:0; }
 
+      /* Typography and wrapping */
+      h1, h2, h3, h4 { word-break: break-word; }
+      h1{ font-size: clamp(1.25rem, 1rem + 2.2vw, 1.8rem); }
+      h2{ font-size: clamp(1.15rem, 1rem + 1.6vw, 1.6rem); }
+      h3{ font-size: clamp(1.05rem, 0.95rem + 1vw, 1.35rem); }
+
+      /* Logo sizing to avoid taking too much space */
+      .brand-logo{ max-height: 28px; max-width: 120px; height:auto; width:auto; object-fit:contain; }
+
       /* Strong active styles for toggle radios */
       .btn-check:checked + .btn-outline-success,
       .btn-check:active + .btn-outline-success {
@@ -74,15 +83,18 @@
         .sidebar .label, .sidebar .user-meta{ display:none; }
         .sidebar .nav .btn{ padding-left:.5rem; padding-right:.5rem; text-align:center; }
         .sidebar .nav .btn i{ margin:0 !important; font-size:1.1rem; }
+        .brand-logo{ max-height: 24px; max-width: 100px; }
       }
       @media (max-width: 575.98px) {
         .card{ padding: 1rem !important; }
         .main-wrapper{ padding: 1rem !important; }
+        .brand-logo{ max-height: 20px; max-width: 88px; }
+        .btn{ padding: .35rem .6rem; font-size: .95rem; }
       }
 
       /* Cabeçalhos e botões responsivos */
       .page-head{ flex-wrap: wrap; gap: .5rem; }
-      .page-head h3{ margin: 0; font-size: clamp(1.125rem, 1rem + 1.2vw, 1.5rem); }
+      .page-head h3{ margin: 0; font-size: clamp(1rem, 0.95rem + 1vw, 1.35rem); }
       @media (max-width: 575.98px) {
         .page-head h3{ flex: 0 0 100%; }
         .page-head .btn{ width: 100%; }
@@ -90,6 +102,7 @@
 
       /* Evitar sobreposição quando textos de botões são longos */
       .btn{ white-space: normal; }
+      .student-name{ font-size: clamp(1rem, 0.95rem + .6vw, 1.1rem); }
     </style>
   </head>
   <body>
@@ -97,7 +110,7 @@
       <aside id="sidebar" class="sidebar p-3">
         <div class="brand mb-4">
           {% if brand_logo_url %}
-            <img src="{{ brand_logo_url }}" alt="Logo" style="max-height:36px;" class="me-2">
+            <img src="{{ brand_logo_url }}" alt="Logo" class="me-2 brand-logo">
           {% else %}
             <i class="bi bi-check2-square me-2 fs-4"></i>
           {% endif %}
