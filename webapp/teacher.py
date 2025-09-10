@@ -25,6 +25,8 @@ from .models import (
     get_or_create_session,
     Stage,
     StageSession,
+    Activity,
+    DailyScore,
 )
 from .calendar_utils import brazil_national_holidays, generate_teaching_dates
 
@@ -220,6 +222,12 @@ def save_attendance(class_id: int):
                 AttendanceEntry(session_id=session.id, student_id=st.id, present=val)
             )
     db.session.commit()
+    # Update activity scores for this date (idempotent upsert)
+    try:
+        _update_scores_for_date(class_id=c.id, dt=dt)
+    except Exception:
+        # never fail saving attendance due to scoring update
+        pass
     flash("Chamada salva.", "success")
     return redirect(url_for("teacher.class_detail", class_id=class_id, date=dt))
 
@@ -678,6 +686,207 @@ def reports(class_id: int):
     students = Student.query.filter_by(class_id=c.id).order_by(Student.name).all()
     stages = Stage.query.filter_by(class_id=c.id).order_by(Stage.name).all()
     return render_template("teacher/reports.html", classroom=c, students=students, stages=stages)
+
+
+# =====================
+# Activities (Atividades)
+
+def _count_sessions_in_period(class_id: int, start: str, end: str, stage_id: int | None = None) -> int:
+    q = Session.query.filter_by(class_id=class_id).filter(Session.date >= start, Session.date <= end)
+    sessions = q.all()
+    if not stage_id:
+        return len(sessions)
+    # Prefer StageSession mapping
+    ids = [s.id for s in sessions]
+    if not ids:
+        return 0
+    mapping = {m.session_id for m in StageSession.query.filter(StageSession.session_id.in_(ids), StageSession.stage_id == stage_id).all()}
+    if mapping:
+        return len(mapping)
+    # Fallback by date intersection
+    stg = Stage.query.get(stage_id)
+    if not stg:
+        return len(sessions)
+    return len(sessions)
+
+
+def _update_scores_for_activity(activity: Activity, class_id: int) -> None:
+    """Populate/refresh DailyScore for an activity based on attendance entries.
+
+    Idempotent: uses unique (activity_id, student_id, date) to upsert.
+    """
+    start, end = activity.period_start, activity.period_end
+    q = Session.query.filter_by(class_id=class_id).filter(Session.date >= start, Session.date <= end)
+    sessions = q.order_by(Session.date).all()
+    students = Student.query.filter_by(class_id=class_id).all()
+    ppc = float(activity.points_per_call)
+    for sess in sessions:
+        entries = {e.student_id: bool(e.present) for e in sess.entries}
+        for st in students:
+            present = bool(entries.get(st.id))
+            pts = ppc if present else 0.0
+            row = DailyScore.query.filter_by(activity_id=activity.id, student_id=st.id, date=sess.date).first()
+            if row:
+                row.present = present
+                row.points = pts
+            else:
+                db.session.add(DailyScore(activity_id=activity.id, student_id=st.id, class_id=class_id, date=sess.date, present=present, points=pts))
+    db.session.commit()
+
+
+def _update_scores_for_date(class_id: int, dt: str) -> None:
+    """Update DailyScore rows for all activities overlapping date dt.
+    Called when attendance is saved for a date.
+    """
+    # Find activities whose stage belongs to this class and whose period includes dt and are ATIVA
+    acts = (
+        db.session.query(Activity)
+        .join(Stage, Activity.stage_id == Stage.id)
+        .filter(Stage.class_id == class_id, Activity.status == "ATIVA", Activity.period_start <= dt, Activity.period_end >= dt)
+        .all()
+    )
+    if not acts:
+        return
+    # For each, update only that date's rows
+    students = Student.query.filter_by(class_id=class_id).all()
+    sess = Session.query.filter_by(class_id=class_id, date=dt).first()
+    entries = {e.student_id: bool(e.present) for e in (sess.entries if sess else [])}
+    for act in acts:
+        ppc = float(act.points_per_call)
+        for st in students:
+            present = bool(entries.get(st.id))
+            pts = ppc if present else 0.0
+            row = DailyScore.query.filter_by(activity_id=act.id, student_id=st.id, date=dt).first()
+            if row:
+                row.present = present
+                row.points = pts
+            else:
+                db.session.add(DailyScore(activity_id=act.id, student_id=st.id, class_id=class_id, date=dt, present=present, points=pts))
+    db.session.commit()
+
+
+@bp.route("/classes/<int:class_id>/activities")
+@login_required
+@teacher_required
+def activities(class_id: int):
+    c = Classroom.query.get_or_404(class_id)
+    if c.owner_id != current_user.id and current_user.role != "admin":
+        flash("Sem permissão.", "danger")
+        return redirect(url_for("teacher.dashboard"))
+    stages = Stage.query.filter_by(class_id=c.id).order_by(Stage.name).all()
+    stage_id = request.args.get("stage_id", type=int)
+    q = (
+        Activity.query.join(Stage, Activity.stage_id == Stage.id)
+        .filter(Stage.class_id == c.id)
+        .order_by(Activity.created_at.desc())
+    )
+    if stage_id:
+        q = q.filter(Activity.stage_id == stage_id)
+    acts = q.all()
+    # annotate with real_n
+    annotated = []
+    for a in acts:
+        real_n = _count_sessions_in_period(class_id=c.id, start=a.period_start, end=a.period_end, stage_id=a.stage_id)
+        annotated.append((a, real_n))
+    return render_template("teacher/activities.html", classroom=c, stages=stages, activities=annotated, selected_stage=stage_id)
+
+
+@bp.route("/classes/<int:class_id>/activities/create", methods=["POST"])
+@login_required
+@teacher_required
+def create_activity(class_id: int):
+    c = Classroom.query.get_or_404(class_id)
+    if c.owner_id != current_user.id and current_user.role != "admin":
+        flash("Sem permissão.", "danger")
+        return redirect(url_for("teacher.dashboard"))
+    stage_id = request.form.get("stage_id", type=int)
+    title = (request.form.get("title") or "").strip()
+    desc = (request.form.get("description") or "").strip() or None
+    start = request.form.get("start")
+    end = request.form.get("end")
+    total = request.form.get("points_total", type=float)
+    lessons = request.form.get("lessons_count", type=int)
+    auto = request.form.get("auto_count") == "1"
+    if not (stage_id and title and start and end and total):
+        flash("Preencha etapa, período, título e valor total.", "warning")
+        return redirect(url_for("teacher.activities", class_id=class_id))
+    if auto:
+        lessons = _count_sessions_in_period(class_id=c.id, start=start, end=end, stage_id=stage_id)
+    if not lessons or lessons <= 0:
+        flash("Quantidade de aulas inválida.", "warning")
+        return redirect(url_for("teacher.activities", class_id=class_id))
+    ppc = round(total / lessons, 4)
+    act = Activity(
+        stage_id=stage_id,
+        title=title,
+        description=desc,
+        period_start=start,
+        period_end=end,
+        lessons_count=lessons,
+        points_total=total,
+        points_per_call=ppc,
+        created_by_user_id=current_user.id,
+        created_by_role=("ADM" if current_user.role == "admin" else "PROFESSOR"),
+        status="ATIVA",
+    )
+    db.session.add(act)
+    db.session.commit()
+    _update_scores_for_activity(act, class_id=c.id)
+    flash("Atividade criada e pontuações calculadas.", "success")
+    return redirect(url_for("teacher.activities", class_id=class_id))
+
+
+@bp.route("/activities/<int:activity_id>/edit", methods=["POST"])
+@login_required
+@teacher_required
+def edit_activity(activity_id: int):
+    act = Activity.query.get_or_404(activity_id)
+    stg = Stage.query.get_or_404(act.stage_id)
+    c = Classroom.query.get_or_404(stg.class_id)
+    if c.owner_id != current_user.id and current_user.role != "admin":
+        flash("Sem permissão.", "danger")
+        return redirect(url_for("teacher.dashboard"))
+    title = (request.form.get("title") or act.title).strip()
+    desc = (request.form.get("description") or "").strip() or None
+    start = request.form.get("start") or act.period_start
+    end = request.form.get("end") or act.period_end
+    total = request.form.get("points_total", type=float) or float(act.points_total)
+    lessons = request.form.get("lessons_count", type=int) or act.lessons_count
+    status = request.form.get("status") or act.status
+    auto = request.form.get("auto_count") == "1"
+    if auto:
+        lessons = _count_sessions_in_period(class_id=c.id, start=start, end=end, stage_id=act.stage_id)
+    if lessons <= 0:
+        flash("Quantidade de aulas inválida.", "warning")
+        return redirect(url_for("teacher.activities", class_id=c.id))
+    ppc = round(total / lessons, 4)
+    act.title = title
+    act.description = desc
+    act.period_start = start
+    act.period_end = end
+    act.points_total = total
+    act.lessons_count = lessons
+    act.points_per_call = ppc
+    act.status = status
+    db.session.commit()
+    _update_scores_for_activity(act, class_id=c.id)
+    flash("Atividade atualizada e pontuações recalculadas.", "success")
+    return redirect(url_for("teacher.activities", class_id=c.id))
+
+
+@bp.route("/activities/<int:activity_id>/recalc", methods=["POST"])
+@login_required
+@teacher_required
+def recalc_activity(activity_id: int):
+    act = Activity.query.get_or_404(activity_id)
+    stg = Stage.query.get_or_404(act.stage_id)
+    c = Classroom.query.get_or_404(stg.class_id)
+    if c.owner_id != current_user.id and current_user.role != "admin":
+        flash("Sem permissão.", "danger")
+        return redirect(url_for("teacher.dashboard"))
+    _update_scores_for_activity(act, class_id=c.id)
+    flash("Pontuações recalculadas a partir das chamadas.", "success")
+    return redirect(url_for("teacher.activities", class_id=c.id))
 
 
 @bp.route("/classes/<int:class_id>/import", methods=["GET", "POST"])

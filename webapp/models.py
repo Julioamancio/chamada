@@ -102,3 +102,41 @@ class StageSession(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     session_id = db.Column(db.Integer, db.ForeignKey("session.id"), unique=True, nullable=False)
     stage_id = db.Column(db.Integer, db.ForeignKey("stage.id"), nullable=False)
+
+
+# ---------------------------
+# Activities and scoring
+
+class Activity(db.Model):
+    __tablename__ = "activity"
+    id = db.Column(db.Integer, primary_key=True)
+    stage_id = db.Column(db.Integer, db.ForeignKey("stage.id"), nullable=False)
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    period_start = db.Column(db.String(10), nullable=False)  # YYYY-MM-DD
+    period_end = db.Column(db.String(10), nullable=False)    # YYYY-MM-DD
+    lessons_count = db.Column(db.Integer, nullable=False)    # N chamadas
+    points_total = db.Column(db.Numeric(6, 2), nullable=False)
+    points_per_call = db.Column(db.Numeric(10, 4), nullable=False)
+    created_by_user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    created_by_role = db.Column(db.String(16), nullable=False)
+    status = db.Column(db.String(16), nullable=False, default="ATIVA")  # ATIVA | ARQUIVADA
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+
+    stage = db.relationship("Stage")
+
+
+class DailyScore(db.Model):
+    __tablename__ = "daily_score"
+    id = db.Column(db.Integer, primary_key=True)
+    activity_id = db.Column(db.Integer, db.ForeignKey("activity.id"), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey("student.id"), nullable=False)
+    class_id = db.Column(db.Integer, db.ForeignKey("classroom.id"), nullable=False)
+    date = db.Column(db.String(10), nullable=False)  # YYYY-MM-DD
+    present = db.Column(db.Boolean, default=False, nullable=False)
+    points = db.Column(db.Numeric(10, 4), nullable=False, default=0)
+
+    __table_args__ = (
+        db.UniqueConstraint("activity_id", "student_id", "date", name="uq_daily_score"),
+    )
