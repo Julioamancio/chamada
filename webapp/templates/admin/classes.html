@@ -7,9 +7,9 @@
 
 <div class="card p-3 mb-4">
   <h5 class="mb-3">Criar turma</h5>
-  <form class="row g-2" method="post" action="{{ url_for('admin.create_class_admin') }}">
-    <div class="col-md-5"><input class="form-control" name="name" placeholder="Nome da turma" required></div>
-    <div class="col-md-5">
+  <form class="row g-2 align-items-end" method="post" action="{{ url_for('admin.create_class_admin') }}">
+    <div class="col-12 col-md-5"><label class="form-label">Nome</label><input class="form-control" name="name" placeholder="Nome da turma" required></div>
+    <div class="col-12 col-md-5"><label class="form-label">Professor</label>
       <select class="form-select" name="owner_id" required>
         <option value="">Selecione o professor</option>
         {% for t in teachers %}
@@ -17,47 +17,49 @@
         {% endfor %}
       </select>
     </div>
-    <div class="col-md-2 d-grid"><button class="btn btn-primary" type="submit">Criar</button></div>
+    <div class="col-12 col-md-2 d-grid"><label class="form-label d-none d-md-block">&nbsp;</label><button class="btn btn-primary" type="submit">Criar</button></div>
   </form>
 </div>
 
 <div class="card p-3">
   <h5 class="mb-3">Turmas existentes</h5>
-  <div class="table-responsive">
-    <table class="table table-striped">
-      <thead><tr><th>Turma</th><th>Professor</th><th style="width:30%">Vincular / Ações</th></tr></thead>
-      <tbody>
-        {% for c in classes %}
-          <tr>
-            <td>
-              <form class="d-flex gap-2" method="post" action="{{ url_for('admin.rename_class_admin', class_id=c.id) }}">
-                <input class="form-control" name="name" value="{{ c.name }}" required>
-                <button class="btn btn-outline-primary" type="submit">Renomear</button>
-              </form>
-            </td>
-            <td>
-              {% set owner = teachers | selectattr('id','equalto', c.owner_id) | first %}
-              {{ owner.name if owner else '—' }}
-            </td>
-            <td>
-              <form class="d-flex gap-2" method="post" action="{{ url_for('admin.reassign_class', class_id=c.id) }}">
-                <select class="form-select" name="owner_id" required>
-                  {% for t in teachers %}
-                    <option value="{{ t.id }}" {% if t.id == c.owner_id %}selected{% endif %}>{{ t.name }}</option>
-                  {% endfor %}
-                </select>
-                <button class="btn btn-outline-primary" type="submit">Vincular</button>
-              </form>
-              <form class="mt-2" method="post" action="{{ url_for('admin.delete_class_admin', class_id=c.id) }}" onsubmit="return confirm('Excluir turma e todos os dados?')">
-                <button class="btn btn-outline-danger">Excluir turma</button>
-              </form>
-            </td>
-          </tr>
-        {% else %}
-          <tr><td colspan="3">Nenhuma turma cadastrada.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div class="list-group">
+    {% for c in classes %}
+    <div class="list-group-item">
+      <div class="row g-2 align-items-center">
+        <div class="col-12 col-md-5">
+          <label class="form-label small text-muted">Turma</label>
+          <form class="d-flex gap-2" method="post" action="{{ url_for('admin.rename_class_admin', class_id=c.id) }}">
+            <input class="form-control" name="name" value="{{ c.name }}" required>
+            <button class="btn btn-outline-primary text-nowrap" type="submit"><i class="bi bi-pencil-square me-1"></i><span class="d-none d-sm-inline">Renomear</span></button>
+          </form>
+        </div>
+        <div class="col-12 col-md-3">
+          <label class="form-label small text-muted">Professor atual</label>
+          {% set owner = teachers | selectattr('id','equalto', c.owner_id) | first %}
+          <div class="form-control bg-light">{{ owner.name if owner else '—' }}</div>
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label small text-muted">Vincular a</label>
+          <form class="d-flex gap-2" method="post" action="{{ url_for('admin.reassign_class', class_id=c.id) }}">
+            <select class="form-select" name="owner_id" required>
+              {% for t in teachers %}
+                <option value="{{ t.id }}" {% if t.id == c.owner_id %}selected{% endif %}>{{ t.name }}</option>
+              {% endfor %}
+            </select>
+            <button class="btn btn-outline-primary text-nowrap" type="submit">Vincular</button>
+          </form>
+        </div>
+        <div class="col-12 d-flex justify-content-end">
+          <form method="post" action="{{ url_for('admin.delete_class_admin', class_id=c.id) }}" onsubmit="return confirm('Excluir turma e todos os dados?')">
+            <button class="btn btn-outline-danger">Excluir turma</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% else %}
+      <div class="list-group-item text-muted">Nenhuma turma cadastrada.</div>
+    {% endfor %}
   </div>
 </div>
 {% endblock %}
