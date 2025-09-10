@@ -187,6 +187,19 @@ def put_attendance(class_id: int):
             e.present = val
         else:
             db.session.add(AttendanceEntry(session_id=s.id, student_id=st.id, present=val))
+    # Ensure the session is linked to its stage (by date) and update activity scores
+    try:
+        from .teacher import _attach_stage_to_session, _update_scores_for_date  # lazy import to avoid init cycles
+        _attach_stage_to_session(c, s, dt)
+        db.session.commit()
+        try:
+            _update_scores_for_date(class_id=c.id, dt=dt)
+        except Exception:
+            # scoring recalculation is best-effort
+            pass
+    except Exception:
+        # stage linking is best-effort as well
+        pass
+
     db.session.commit()
     return jsonify({"ok": True, "date": s.date})
-

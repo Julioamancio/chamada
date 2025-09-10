@@ -888,26 +888,55 @@ def _update_scores_for_date(class_id: int, dt: str) -> None:
     acts = (
         db.session.query(Activity)
         .join(Stage, Activity.stage_id == Stage.id)
-        .filter(Stage.class_id == class_id, Activity.status == "ATIVA", Activity.period_start <= dt, Activity.period_end >= dt)
+        .filter(
+            Stage.class_id == class_id,
+            Activity.status == "ATIVA",
+            Activity.period_start <= dt,
+            Activity.period_end >= dt,
+        )
         .all()
     )
     if not acts:
         return
-    # For each, update only that date's rows
-    students = Student.query.filter_by(class_id=class_id).all()
+    # Load session and entries for the target date
     sess = Session.query.filter_by(class_id=class_id, date=dt).first()
-    entries = {e.student_id: bool(e.present) for e in (sess.entries if sess else [])}
+    if not sess:
+        return  # nothing to update without a session
+    entries = {e.student_id: bool(e.present) for e in sess.entries}
+    # If the session is explicitly mapped to a stage, honor that mapping
+    try:
+        mapped = None
+        from .models import StageSession  # local import to avoid circular
+        mapped = StageSession.query.filter_by(session_id=sess.id).first()
+    except Exception:
+        mapped = None
+    students = Student.query.filter_by(class_id=class_id).all()
     for act in acts:
+        # If this session is mapped to a different stage, skip this activity
+        if mapped and mapped.stage_id != act.stage_id:
+            continue
         ppc = float(act.points_per_call)
         for st in students:
             present = bool(entries.get(st.id))
             pts = ppc if present else 0.0
-            row = DailyScore.query.filter_by(activity_id=act.id, student_id=st.id, date=dt).first()
+            row = (
+                DailyScore.query.filter_by(activity_id=act.id, student_id=st.id, date=dt)
+                .first()
+            )
             if row:
                 row.present = present
                 row.points = pts
             else:
-                db.session.add(DailyScore(activity_id=act.id, student_id=st.id, class_id=class_id, date=dt, present=present, points=pts))
+                db.session.add(
+                    DailyScore(
+                        activity_id=act.id,
+                        student_id=st.id,
+                        class_id=class_id,
+                        date=dt,
+                        present=present,
+                        points=pts,
+                    )
+                )
     db.session.commit()
 
 
