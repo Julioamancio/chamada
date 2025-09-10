@@ -128,6 +128,42 @@
       /* Evitar sobreposição quando textos de botões são longos */
       .btn{ white-space: normal; }
       .student-name{ font-size: clamp(1rem, 0.95rem + .6vw, 1.1rem); }
+
+      /* ------------------------------ */
+      /* Dark theme tweaks (sidebar, icons, cards) */
+      [data-bs-theme='dark'] body{
+        background: linear-gradient(180deg, #0b0f16 0%, #0e1420 60%, #0b0f16 100%);
+      }
+      [data-bs-theme='dark'] .sidebar{
+        --sidebar-bg: #0f172a;
+        --sidebar-border: #1f2937;
+        --sidebar-text: #e5e7eb;
+        --sidebar-shadow: 0 8px 24px rgba(0,0,0,.35);
+        background: var(--sidebar-bg);
+        border-right: 1px solid var(--sidebar-border);
+        color: var(--sidebar-text);
+      }
+      [data-bs-theme='dark'] .sidebar .toggle{
+        color: #e5e7eb;
+        background: #0b1220;
+        border-color: #1f2937;
+      }
+      [data-bs-theme='dark'] .sidebar .nav .btn{
+        border-color: #334155;
+        color: #e5e7eb;
+        background: #0b1220;
+      }
+      [data-bs-theme='dark'] .sidebar .nav .btn:hover{
+        background: #111827;
+      }
+      [data-bs-theme='dark'] .sidebar .nav .btn i{
+        color: #ffffff !important; /* ícones brancos no dark */
+      }
+      [data-bs-theme='dark'] .card{
+        border-color: #1f2937;
+        box-shadow: 0 6px 18px rgba(0,0,0,.35);
+      }
+      [data-bs-theme='dark'] .upload-area{ color:#94a3b8; border-color:#334155; }
     </style>
   </head>
   <body>
