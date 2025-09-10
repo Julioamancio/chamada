@@ -5,13 +5,14 @@
   <a class="btn btn-secondary me-2" href="{{ url_for('teacher.dashboard') }}">Área do Professor</a>
   <a class="btn btn-outline-primary me-2" href="{{ url_for('admin.classes') }}">Turmas</a>
   <a class="btn btn-outline-secondary" href="{{ url_for('auth.logout') }}">Sair</a>
-  </div>
+</div>
 
 <form class="card p-3 mb-4" method="post" action="{{ url_for('admin.create_user') }}">
-  <div class="row g-2">
-    <div class="col-md-3"><input class="form-control" name="name" placeholder="Nome" required></div>
-    <div class="col-md-3"><input class="form-control" type="email" name="email" placeholder="E-mail" required></div>
-    <div class="col-md-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-12 col-md-3"><label class="form-label">Nome</label><input class="form-control" name="name" placeholder="Nome" required></div>
+    <div class="col-12 col-md-3"><label class="form-label">E-mail</label><input class="form-control" type="email" name="email" placeholder="E-mail" required></div>
+    <div class="col-12 col-md-3">
+      <label class="form-label">Senha</label>
       <div class="input-group">
         <input id="createUserPassword" class="form-control" type="password" name="password" placeholder="Senha" required>
         <button class="btn btn-outline-secondary toggle-pass" type="button" aria-label="Mostrar/ocultar senha" data-target="createUserPassword">
@@ -19,49 +20,48 @@
         </button>
       </div>
     </div>
-    <div class="col-md-2">
+    <div class="col-12 col-md-2"><label class="form-label">Perfil</label>
       <select class="form-select" name="role">
         <option value="teacher">Professor</option>
         <option value="admin">Admin</option>
       </select>
     </div>
-    <div class="col-md-1 d-grid"><button class="btn btn-primary" type="submit">Criar</button></div>
+    <div class="col-12 col-md-1 d-grid"><label class="form-label d-none d-md-block">&nbsp;</label><button class="btn btn-primary" type="submit">Criar</button></div>
   </div>
-  </form>
+</form>
 
-<div class="table-responsive">
-  <table class="table table-striped align-middle">
-    <thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th style="width:30%">Ações</th></tr></thead>
-    <tbody>
-  {% for u in users %}
-    <tr>
+<div class="card p-3">
+  <h5 class="mb-3">Lista de usuários</h5>
+  <div class="list-group">
+    {% for u in users %}
+    <div class="list-group-item">
       <form class="row g-2 align-items-center" method="post" action="{{ url_for('admin.edit_user', user_id=u.id) }}">
-        <td class="col-md-3"><input class="form-control form-control-sm" name="name" value="{{ u.name }}" required></td>
-        <td class="col-md-4"><input class="form-control form-control-sm" type="email" name="email" value="{{ u.email }}" required></td>
-        <td class="col-md-2">
+        <div class="col-12 col-md-3"><label class="form-label small text-muted">Nome</label><input class="form-control form-control-sm" name="name" value="{{ u.name }}" required></div>
+        <div class="col-12 col-md-4"><label class="form-label small text-muted">E-mail</label><input class="form-control form-control-sm" type="email" name="email" value="{{ u.email }}" required></div>
+        <div class="col-12 col-md-2"><label class="form-label small text-muted">Perfil</label>
           <select class="form-select form-select-sm" name="role">
             <option value="teacher" {% if u.role=='teacher' %}selected{% endif %}>Professor</option>
             <option value="admin" {% if u.role=='admin' %}selected{% endif %}>Admin</option>
           </select>
-        </td>
-        <td class="col-md-3">
-          <div class="d-flex gap-2 align-items-stretch">
-            <div class="input-group input-group-sm">
-              <input class="form-control" type="password" name="password" placeholder="Nova senha (opcional)">
-              <button class="btn btn-outline-secondary btn-sm toggle-pass" type="button" aria-label="Mostrar/ocultar senha">
-                <i class="bi bi-eye"></i>
-              </button>
-            </div>
-            <button class="btn btn-sm btn-primary" type="submit">Salvar</button>
-            <form method="post" action="{{ url_for('admin.delete_user', user_id=u.id) }}" onsubmit="return confirm('Excluir este usuário?')">
-              <button class="btn btn-sm btn-outline-danger" type="submit">Excluir</button>
-            </form>
+        </div>
+        <div class="col-12 col-md-3">
+          <label class="form-label small text-muted">Nova senha (opcional)</label>
+          <div class="input-group input-group-sm mb-2 mb-md-0">
+            <input class="form-control" type="password" name="password" placeholder="Nova senha (opcional)">
+            <button class="btn btn-outline-secondary btn-sm toggle-pass" type="button" aria-label="Mostrar/ocultar senha">
+              <i class="bi bi-eye"></i>
+            </button>
           </div>
-        </td>
+        </div>
+        <div class="col-12 d-flex gap-2 justify-content-end">
+          <button class="btn btn-sm btn-primary" type="submit">Salvar</button>
+          <form method="post" action="{{ url_for('admin.delete_user', user_id=u.id) }}" onsubmit="return confirm('Excluir este usuário?')">
+            <button class="btn btn-sm btn-outline-danger" type="submit">Excluir</button>
+          </form>
+        </div>
       </form>
-    </tr>
-  {% endfor %}
-    </tbody>
-  </table>
+    </div>
+    {% endfor %}
+  </div>
 </div>
 {% endblock %}
