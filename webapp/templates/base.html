@@ -67,6 +67,18 @@
         background-color: #dc3545;
         border-color: #dc3545;
       }
+
+      /* Responsividade: reduzir sidebar e ajustar layout em telas menores */
+      @media (max-width: 991.98px) {
+        .sidebar{ width: var(--sidebar-width-collapsed); }
+        .sidebar .label, .sidebar .user-meta{ display:none; }
+        .sidebar .nav .btn{ padding-left:.5rem; padding-right:.5rem; text-align:center; }
+        .sidebar .nav .btn i{ margin:0 !important; font-size:1.1rem; }
+      }
+      @media (max-width: 575.98px) {
+        .card{ padding: 1rem !important; }
+        .main-wrapper{ padding: 1rem !important; }
+      }
     </style>
   </head>
   <body>

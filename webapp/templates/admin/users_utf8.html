@@ -22,9 +22,10 @@
   </div>
   </form>
 
-<table class="table table-striped">
-  <thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th style="width:30%">Ações</th></tr></thead>
-  <tbody>
+<div class="table-responsive">
+  <table class="table table-striped align-middle">
+    <thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th style="width:30%">Ações</th></tr></thead>
+    <tbody>
   {% for u in users %}
     <tr>
       <form class="row g-2 align-items-center" method="post" action="{{ url_for('admin.edit_user', user_id=u.id) }}">
@@ -48,6 +49,7 @@
       </form>
     </tr>
   {% endfor %}
-  </tbody>
+    </tbody>
   </table>
+</div>
 {% endblock %}
