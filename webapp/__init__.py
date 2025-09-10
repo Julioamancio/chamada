@@ -77,18 +77,48 @@ def create_app() -> Flask:
 
     # Ensure a default logo is persisted on first run
     def _ensure_default_logo():
+        """Ensure an initial branding logo is present.
+
+        Priority:
+        1) If user already uploaded any "logo.*" in instance/branding → keep it.
+        2) Try to download the official Colégio Santo Antônio logo from the URL provided.
+        3) Fallback to the embedded logo_default.svg bundled with the app.
+        """
         try:
             from shutil import copy2 as _copy2
+            from urllib.request import urlopen
+            import ssl
+
             folder = Path(app.instance_path) / "branding"
             folder.mkdir(parents=True, exist_ok=True)
             # If there's already any logo file, keep it
             if any(folder.glob("logo.*")):
                 return
+
+            # Attempt to download the official logo once
+            url = (
+                "https://www.colegiosantoantonio.com.br/wp-content/uploads/2019/06/"
+                "nova-logo-colegio-santo-antonio-logotipo.png"
+            )
+            try:
+                # Some hosts may require an unverified context in constrained envs
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+                with urlopen(url, timeout=6, context=ctx) as resp:
+                    data = resp.read()
+                    out = folder / "logo.png"
+                    out.write_bytes(data)
+                    return
+            except Exception:
+                # Fallback to embedded asset
+                pass
+
             default_src = Path(__file__).resolve().parent / "static" / "logo_default.svg"
             if default_src.exists():
                 _copy2(default_src, folder / "logo.svg")
         except Exception:
-            # Never crash on branding setup
+            # Never crash the app due to branding setup
             pass
 
     _ensure_default_logo()
