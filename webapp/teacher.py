@@ -788,7 +788,19 @@ def activities(class_id: int):
     for a in acts:
         real_n = _count_sessions_in_period(class_id=c.id, start=a.period_start, end=a.period_end, stage_id=a.stage_id)
         annotated.append((a, real_n))
-    return render_template("teacher/activities.html", classroom=c, stages=stages, activities=annotated, selected_stage=stage_id)
+    # preview data per stage for the creation form
+    preview = {}
+    for stg in stages:
+        n = _count_sessions_in_period(class_id=c.id, start=stg.start, end=stg.end, stage_id=stg.id)
+        preview[stg.id] = {"n": n, "start": stg.start, "end": stg.end}
+    return render_template(
+        "teacher/activities.html",
+        classroom=c,
+        stages=stages,
+        activities=annotated,
+        selected_stage=stage_id,
+        preview_by_stage=preview,
+    )
 
 
 @bp.route("/classes/<int:class_id>/activities/create", methods=["POST"])
@@ -802,16 +814,13 @@ def create_activity(class_id: int):
     stage_id = request.form.get("stage_id", type=int)
     title = (request.form.get("title") or "").strip()
     desc = (request.form.get("description") or "").strip() or None
-    start = request.form.get("start")
-    end = request.form.get("end")
     total = request.form.get("points_total", type=float)
-    lessons = request.form.get("lessons_count", type=int)
-    auto = request.form.get("auto_count") == "1"
-    if not (stage_id and title and start and end and total):
-        flash("Preencha etapa, período, título e valor total.", "warning")
+    if not (stage_id and title and total):
+        flash("Preencha etapa, título e valor total.", "warning")
         return redirect(url_for("teacher.activities", class_id=class_id))
-    if auto:
-        lessons = _count_sessions_in_period(class_id=c.id, start=start, end=end, stage_id=stage_id)
+    stg = Stage.query.get_or_404(stage_id)
+    start, end = stg.start, stg.end
+    lessons = _count_sessions_in_period(class_id=c.id, start=start, end=end, stage_id=stage_id)
     if not lessons or lessons <= 0:
         flash("Quantidade de aulas inválida.", "warning")
         return redirect(url_for("teacher.activities", class_id=class_id))
@@ -848,14 +857,12 @@ def edit_activity(activity_id: int):
         return redirect(url_for("teacher.dashboard"))
     title = (request.form.get("title") or act.title).strip()
     desc = (request.form.get("description") or "").strip() or None
-    start = request.form.get("start") or act.period_start
-    end = request.form.get("end") or act.period_end
     total = request.form.get("points_total", type=float) or float(act.points_total)
-    lessons = request.form.get("lessons_count", type=int) or act.lessons_count
     status = request.form.get("status") or act.status
-    auto = request.form.get("auto_count") == "1"
-    if auto:
-        lessons = _count_sessions_in_period(class_id=c.id, start=start, end=end, stage_id=act.stage_id)
+    # Period and lessons are determined by the stage
+    stg = Stage.query.get_or_404(act.stage_id)
+    start, end = stg.start, stg.end
+    lessons = _count_sessions_in_period(class_id=c.id, start=start, end=end, stage_id=act.stage_id)
     if lessons <= 0:
         flash("Quantidade de aulas inválida.", "warning")
         return redirect(url_for("teacher.activities", class_id=c.id))

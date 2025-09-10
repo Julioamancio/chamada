@@ -17,19 +17,12 @@
         {% endfor %}
       </select>
     </div>
-    <div class="col-6 col-md-2"><label class="form-label">Início</label><input class="form-control" type="date" name="start" required></div>
-    <div class="col-6 col-md-2"><label class="form-label">Fim</label><input class="form-control" type="date" name="end" required></div>
-    <div class="col-6 col-md-2"><label class="form-label">N aulas</label><input class="form-control" type="number" min="1" name="lessons_count" placeholder="auto"></div>
-    <div class="col-6 col-md-2"><label class="form-label">Pontos total</label><input class="form-control" type="number" step="0.01" min="0.01" name="points_total" required></div>
+    <div class="col-6 col-md-2"><label class="form-label">Pontos total</label><input id="pointsTotal" class="form-control" type="number" step="0.01" min="0.01" name="points_total" required></div>
     <div class="col-12 col-md-3"><label class="form-label">Título</label><input class="form-control" name="title" placeholder="Participação — Maio (6 pts)" required></div>
     <div class="col-12 col-md-5"><label class="form-label">Descrição (opcional)</label><input class="form-control" name="description" placeholder="Critérios da atividade"></div>
-    <div class="col-12 col-md-2 form-check ms-2">
-      <input class="form-check-input" type="checkbox" name="auto_count" value="1" id="autoN" checked>
-      <label class="form-check-label" for="autoN">Calcular N automaticamente</label>
-    </div>
     <div class="col-12 col-md-2 d-grid"><label class="form-label d-none d-md-block">&nbsp;</label><button class="btn btn-success" type="submit">Salvar</button></div>
   </form>
-  <div class="small text-muted mt-2">Prévia: Pontos por chamada = Pontos_total / N. (Armazenado com 4 casas, exibido com 2)</div>
+  <div class="small text-muted mt-2" id="previewInfo">Selecione uma etapa para calcular automaticamente o período e o número de aulas (N). Pontos por chamada = Pontos_total / N.</div>
 </div>
 
 <div class="card p-3">
@@ -42,9 +35,8 @@
           <label class="form-label small text-muted">Etapa</label>
           <div class="form-control bg-light">{{ a.stage.name }}</div>
         </div>
-        <div class="col-6 col-md-2"><label class="form-label small text-muted">Início</label><input class="form-control form-control-sm" type="date" name="start" value="{{ a.period_start }}"></div>
-        <div class="col-6 col-md-2"><label class="form-label small text-muted">Fim</label><input class="form-control form-control-sm" type="date" name="end" value="{{ a.period_end }}"></div>
-        <div class="col-6 col-md-2"><label class="form-label small text-muted">N aulas</label><input class="form-control form-control-sm" type="number" min="1" name="lessons_count" value="{{ a.lessons_count }}"></div>
+        <div class="col-12 col-md-3"><label class="form-label small text-muted">Período (da etapa)</label><div class="form-control bg-light">{{ a.period_start }} → {{ a.period_end }}</div></div>
+        <div class="col-6 col-md-2"><label class="form-label small text-muted">N aulas (calculado)</label><div class="form-control bg-light">{{ real_n }}</div></div>
         <div class="col-6 col-md-2"><label class="form-label small text-muted">Pontos total</label><input class="form-control form-control-sm" type="number" step="0.01" min="0.01" name="points_total" value="{{ '%.2f'|format(a.points_total) }}"></div>
         <div class="col-12 col-md-3"><label class="form-label small text-muted">Título</label><input class="form-control form-control-sm" name="title" value="{{ a.title }}"></div>
         <div class="col-12 col-md-5"><label class="form-label small text-muted">Descrição</label><input class="form-control form-control-sm" name="description" value="{{ a.description or '' }}"></div>
@@ -55,17 +47,13 @@
             <option value="ARQUIVADA" {% if a.status=='ARQUIVADA' %}selected{% endif %}>Arquivada</option>
           </select>
         </div>
-        <div class="col-6 col-md-2 form-check mt-4">
-          <input class="form-check-input" type="checkbox" name="auto_count" value="1" id="autoN{{a.id}}">
-          <label class="form-check-label" for="autoN{{a.id}}">Recontar N automaticamente</label>
-        </div>
         <div class="col-12 col-md-3 d-flex gap-2 justify-content-end">
           <button class="btn btn-sm btn-primary" type="submit">Salvar</button>
           <form method="post" action="{{ url_for('teacher.recalc_activity', activity_id=a.id) }}">
             <button class="btn btn-sm btn-outline-secondary" type="submit" title="Recalcular a partir das chamadas">Recalcular</button>
           </form>
         </div>
-        <div class="col-12 small text-muted">Pontos por chamada: {{ '%.2f'|format(a.points_per_call) }} • N informado: {{ a.lessons_count }} • N real no período: {{ real_n }} {% if real_n != a.lessons_count %}<span class="text-warning">(diferença encontrada)</span>{% endif %} • Criada em {{ a.created_at.strftime('%d/%m/%Y') if a.created_at else '' }}</div>
+        <div class="col-12 small text-muted">Pontos por chamada: {{ '%.2f'|format(a.points_per_call) }} • N (calculado): {{ real_n }} {% if real_n != a.lessons_count %}<span class="text-warning">(diferença encontrada — clique Recalcular)</span>{% endif %} • Criada em {{ a.created_at.strftime('%d/%m/%Y') if a.created_at else '' }}</div>
       </form>
     </div>
     {% else %}
@@ -73,4 +61,28 @@
     {% endfor %}
   </div>
 </div>
+
+<script>
+  (function(){
+    const preview = {{ preview_by_stage|tojson }};
+    const stageSel = document.querySelector('select[name="stage_id"]');
+    const totalInp = document.getElementById('pointsTotal');
+    const info = document.getElementById('previewInfo');
+    function upd(){
+      const sid = stageSel?.value;
+      const tot = parseFloat(totalInp?.value || '0');
+      if (sid && preview[sid]){
+        const n = preview[sid].n || 0;
+        const s = preview[sid].start, e = preview[sid].end;
+        const ppc = (n && tot) ? (tot / n) : 0;
+        info.textContent = `Período: ${s} → ${e} • Aulas (N): ${n} • Pontos por chamada (prévia): ${ppc.toFixed(2)}`;
+      } else {
+        info.textContent = 'Selecione uma etapa para calcular automaticamente o período e o número de aulas (N). Pontos por chamada = Pontos_total / N.';
+      }
+    }
+    stageSel?.addEventListener('change', upd);
+    totalInp?.addEventListener('input', upd);
+    upd();
+  })();
+</script>
 {% endblock %}
