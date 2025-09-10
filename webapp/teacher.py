@@ -689,6 +689,140 @@ def reports(class_id: int):
 
 
 # =====================
+# Settings for teacher (theme + backups)
+
+@bp.route("/settings")
+@login_required
+@teacher_required
+def settings():
+    """Teacher settings page with theme toggle and personal backup tools."""
+    return render_template("teacher/settings.html")
+
+
+@bp.route("/settings/export", methods=["GET"])
+@login_required
+@teacher_required
+def export_teacher_backup():
+    from io import BytesIO
+    import json
+    from datetime import datetime
+
+    classes = Classroom.query.filter_by(owner_id=current_user.id).order_by(Classroom.name).all()
+    payload = {
+        "version": 1,
+        "teacher": {"id": current_user.id, "name": current_user.name, "email": current_user.email},
+        "generated_at": datetime.utcnow().isoformat() + "Z",
+        "classes": [],
+    }
+    for c in classes:
+        # stages
+        stages = [
+            {"name": s.name, "start": s.start, "end": s.end, "weekdays": s.weekdays}
+            for s in Stage.query.filter_by(class_id=c.id).order_by(Stage.name).all()
+        ]
+        # students
+        students = [
+            {"name": s.name}
+            for s in Student.query.filter_by(class_id=c.id).order_by(Student.name).all()
+        ]
+        # sessions + entries
+        sessions = []
+        # map session->stage via StageSession
+        try:
+            mapping = {m.session_id: m.stage_id for m in StageSession.query.join(Session, StageSession.session_id == Session.id).filter(Session.class_id == c.id).all()}
+        except Exception:
+            mapping = {}
+        stage_by_id = {s.id: s for s in Stage.query.filter_by(class_id=c.id).all()}
+        for sess in Session.query.filter_by(class_id=c.id).order_by(Session.date).all():
+            entries = [
+                {"student_name": e.student.name, "present": bool(e.present)}
+                for e in sorted(sess.entries, key=lambda x: x.student.name)
+            ]
+            stg_name = None
+            sid = mapping.get(sess.id)
+            if sid and stage_by_id.get(sid):
+                stg_name = stage_by_id[sid].name
+            sessions.append({"date": sess.date, "stage_name": stg_name, "entries": entries})
+        payload["classes"].append({
+            "name": c.name,
+            "stages": stages,
+            "students": students,
+            "sessions": sessions,
+        })
+
+    data = json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
+    bio = BytesIO(data); bio.seek(0)
+    fname = f"backup_prof_{current_user.name.replace(' ','_')}.json"
+    return send_file(bio, as_attachment=True, download_name=fname, mimetype="application/json; charset=utf-8")
+
+
+@bp.route("/settings/import", methods=["POST"])
+@login_required
+@teacher_required
+def import_teacher_backup():
+    import json
+    from datetime import datetime
+
+    f = request.files.get("file")
+    if not f or not f.filename.lower().endswith(".json"):
+        flash("Envie um arquivo .json de backup válido.", "warning")
+        return redirect(url_for("teacher.settings"))
+    try:
+        payload = json.loads(f.read().decode("utf-8"))
+    except Exception as e:
+        flash(f"Falha ao ler JSON: {e}", "danger")
+        return redirect(url_for("teacher.settings"))
+
+    classes = payload.get("classes", [])
+    imported = 0
+    ts = datetime.now().strftime("%Y%m%d-%H%M")
+    for cdata in classes:
+        base_name = cdata.get("name") or "Turma"
+        name = base_name
+        # avoid name conflict
+        if Classroom.query.filter_by(owner_id=current_user.id, name=name).first():
+            name = f"{base_name} (import {ts})"
+        c = Classroom(name=name, owner_id=current_user.id)
+        db.session.add(c)
+        db.session.flush()
+        # stages
+        stage_map = {}
+        for s in cdata.get("stages", []):
+            stg = Stage(class_id=c.id, name=s.get("name",""), start=s.get("start",""), end=s.get("end",""), weekdays=s.get("weekdays",""))
+            db.session.add(stg); db.session.flush(); stage_map[stg.name] = stg.id
+        # students
+        student_map = {}
+        for s in cdata.get("students", []):
+            st = Student(name=s.get("name",""), class_id=c.id)
+            db.session.add(st); db.session.flush(); student_map[st.name] = st.id
+        # sessions + entries
+        for s in cdata.get("sessions", []):
+            sess = get_or_create_session(c, s.get("date"))
+            entries_map = {e.student_id: e for e in sess.entries}
+            for e in s.get("entries", []):
+                sid = student_map.get(e.get("student_name"))
+                if not sid: continue
+                present = bool(e.get("present"))
+                ent = entries_map.get(sid)
+                if ent:
+                    ent.present = present
+                else:
+                    db.session.add(AttendanceEntry(session_id=sess.id, student_id=sid, present=present))
+            # stage mapping by name
+            stg_name = s.get("stage_name")
+            if stg_name and stage_map.get(stg_name):
+                try:
+                    if not StageSession.query.filter_by(session_id=sess.id).first():
+                        db.session.add(StageSession(session_id=sess.id, stage_id=stage_map[stg_name]))
+                except Exception:
+                    pass
+        imported += 1
+    db.session.commit()
+    flash(f"Backup importado: {imported} turma(s) adicionadas.", "success")
+    return redirect(url_for("teacher.settings"))
+
+
+# =====================
 # Activities (Atividades)
 
 def _count_sessions_in_period(class_id: int, start: str, end: str, stage_id: int | None = None) -> int:

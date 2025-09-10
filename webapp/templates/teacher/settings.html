@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-head d-flex align-items-center mb-3">
+  <h3 class="me-auto">Configurações</h3>
+  <a class="btn btn-secondary" href="{{ url_for('teacher.dashboard') }}">Voltar</a>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <h5 class="mb-3">Tema (claro/escuro)</h5>
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <button id="btnThemeLightT" class="btn btn-outline-secondary" type="button"><i class="bi bi-sun"></i> Claro</button>
+        <button id="btnThemeDarkT" class="btn btn-outline-secondary" type="button"><i class="bi bi-moon"></i> Escuro</button>
+      </div>
+      <div class="small text-muted">Preferência salva neste navegador.</div>
+      <script>
+        (function(){
+          const bL = document.getElementById('btnThemeLightT');
+          const bD = document.getElementById('btnThemeDarkT');
+          function sync(){
+            const t = (window.__getTheme ? window.__getTheme() : 'light');
+            bL?.classList.toggle('btn-primary', t==='light');
+            bL?.classList.toggle('btn-outline-secondary', t!=='light');
+            bD?.classList.toggle('btn-primary', t==='dark');
+            bD?.classList.toggle('btn-outline-secondary', t!=='dark');
+          }
+          bL?.addEventListener('click', function(){ window.__setTheme && window.__setTheme('light'); });
+          bD?.addEventListener('click', function(){ window.__setTheme && window.__setTheme('dark'); });
+          window.addEventListener('themechange', sync);
+          sync();
+        })();
+      </script>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <h5 class="mb-3">Backup das minhas turmas</h5>
+      <p class="text-muted">Baixe um arquivo JSON com as turmas, alunos, chamadas e etapas. Você pode reimportar mais tarde.</p>
+      <div class="d-flex gap-2 mb-3">
+        <a class="btn btn-outline-primary" href="{{ url_for('teacher.export_teacher_backup') }}"><i class="bi bi-download me-1"></i>Baixar backup (JSON)</a>
+      </div>
+      <h6>Importar backup (.json)</h6>
+      <form method="post" action="{{ url_for('teacher.import_teacher_backup') }}" enctype="multipart/form-data">
+        <div class="mb-2">
+          <input class="form-control" type="file" name="file" accept=".json" required>
+        </div>
+        <button class="btn btn-outline-danger" type="submit" onclick="return confirm('Isso criará novas turmas com os dados do arquivo. Continuar?')"><i class="bi bi-upload me-1"></i>Importar</button>
+      </form>
+      <div class="small text-muted mt-2">Observação: em caso de nomes de turmas repetidos, será criado um sufixo "(import aaaa-mm-dd)".</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
