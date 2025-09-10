@@ -20,7 +20,13 @@
 <div class="row g-4">
   <div class="col-md-6">
     <div class="card p-3">
-      <h5>Alunos</h5>
+      <div class="d-flex align-items-center mb-2">
+        <h5 class="me-auto mb-0">Alunos</h5>
+        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#studentsCollapse" aria-expanded="false" aria-controls="studentsCollapse">
+          <i class="bi bi-arrows-collapse me-1"></i>Recolher
+        </button>
+      </div>
+      <div id="studentsCollapse" class="collapse">
       <form class="d-flex flex-column flex-sm-row gap-2 mb-3" method="post" action="{{ url_for('teacher.add_student', class_id=classroom.id) }}">
         <input class="form-control" name="name" placeholder="Nome do aluno" required>
         <button class="btn btn-primary" type="submit"><i class="bi bi-person-plus me-1"></i>Adicionar</button>
@@ -34,15 +40,18 @@
                 <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
               </form>
             </div>
-            <form class="row g-2" method="post" action="{{ url_for('teacher.rename_student', class_id=classroom.id, student_id=s.id) }}">
-              <div class="col-9"><input class="form-control form-control-sm" name="name" value="{{ s.name }}" required></div>
-              <div class="col-3 d-grid"><button class="btn btn-sm btn-outline-primary" type="submit"><i class="bi bi-pencil-square me-1"></i>Renomear</button></div>
-          </form>
+            <form class="d-flex flex-wrap gap-2 align-items-center" method="post" action="{{ url_for('teacher.rename_student', class_id=classroom.id, student_id=s.id) }}">
+              <input class="form-control form-control-sm flex-grow-1" name="name" value="{{ s.name }}" required>
+              <button class="btn btn-sm btn-outline-primary text-nowrap" type="submit" title="Renomear">
+                <i class="bi bi-pencil-square"></i><span class="d-none d-sm-inline ms-1">Renomear</span>
+              </button>
+            </form>
           </li>
         {% else %}
           <div class="alert alert-info m-2">Sem alunos. Adicione ou importe via Excel.</div>
         {% endfor %}
       </ul>
+      </div>
     </div>
   </div>
 
@@ -125,6 +134,15 @@
     document.getElementById('btn-none').addEventListener('click', () => {
       document.querySelectorAll('.pa-radio[data-val="A"]').forEach(r => { r.checked = true; r.dispatchEvent(new Event('change')); });
     });
+  })();
+  // Abrir a lista de alunos automaticamente em telas médias+ e deixar recolhida no mobile
+  (function(){
+    const el = document.getElementById('studentsCollapse');
+    if(!el) return;
+    if (window.innerWidth >= 768) {
+      const collapse = new bootstrap.Collapse(el, { toggle: false });
+      collapse.show();
+    }
   })();
   </script>
 {% endblock %}
