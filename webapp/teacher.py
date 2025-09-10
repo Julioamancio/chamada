@@ -717,7 +717,19 @@ def _update_scores_for_activity(activity: Activity, class_id: int) -> None:
     """
     start, end = activity.period_start, activity.period_end
     q = Session.query.filter_by(class_id=class_id).filter(Session.date >= start, Session.date <= end)
-    sessions = q.order_by(Session.date).all()
+    cand = q.order_by(Session.date).all()
+    # Prefer restringir pelas sessões efetivamente vinculadas à etapa, se houver mapeamento
+    sess_ids = [s.id for s in cand]
+    sessions = cand
+    if sess_ids:
+        mapped_ids = {
+            m.session_id
+            for m in StageSession.query.filter(
+                StageSession.session_id.in_(sess_ids), StageSession.stage_id == activity.stage_id
+            ).all()
+        }
+        if mapped_ids:
+            sessions = [s for s in cand if s.id in mapped_ids]
     students = Student.query.filter_by(class_id=class_id).all()
     ppc = float(activity.points_per_call)
     for sess in sessions:
