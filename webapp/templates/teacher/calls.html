@@ -7,7 +7,7 @@
 
 <div class="card p-3 mb-3">
   <form class="row g-2 align-items-end" method="get" action="">
-    <div class="col-md-4">
+    <div class="col-12 col-md-6">
       <label class="form-label">Etapa</label>
       <select class="form-select" name="stage_id" onchange="this.form.submit()">
         <option value="">Todas as aulas</option>
@@ -20,7 +20,8 @@
 </div>
 
 <div class="card p-3">
-  <div class="table-responsive">
+  <!-- Tabela em md+ -->
+  <div class="table-responsive d-none d-md-block">
     <table class="table table-sm">
       <thead><tr><th>Data</th><th>Presentes</th><th>Ausentes</th><th>Etapa</th><th></th></tr></thead>
       <tbody>
@@ -37,6 +38,25 @@
         {% endfor %}
       </tbody>
     </table>
+  </div>
+
+  <!-- Cards no mobile -->
+  <div class="d-block d-md-none">
+    <div class="list-group">
+      {% for r in rows %}
+      <div class="list-group-item">
+        <div class="d-flex align-items-center">
+          <div class="me-auto">
+            <div class="fw-semibold">{{ r.date }}</div>
+            <div class="text-muted small">P: {{ r.present }} • A: {{ r.absent }} • {{ r.stage or '-' }}</div>
+          </div>
+          <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('teacher.class_detail', class_id=classroom.id, date=r.date) }}"><i class="bi bi-eye"></i></a>
+        </div>
+      </div>
+      {% else %}
+      <div class="list-group-item text-muted">Nenhuma chamada registrada para o filtro selecionado.</div>
+      {% endfor %}
+    </div>
   </div>
 </div>
 {% endblock %}

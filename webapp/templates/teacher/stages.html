@@ -8,10 +8,10 @@
 <div class="card p-3 mb-3">
   <h5 class="mb-3">Criar etapa global</h5>
   <form method="post" action="{{ url_for('teacher.create_global_stage') }}" class="row g-2 align-items-end">
-    <div class="col-md-3"><label class="form-label">Nome</label><input class="form-control" name="stage_name" placeholder="Ex.: 1º bimestre" required></div>
-    <div class="col-md-3"><label class="form-label">Início</label><input class="form-control" type="date" name="start" required></div>
-    <div class="col-md-3"><label class="form-label">Fim</label><input class="form-control" type="date" name="end" required></div>
-    <div class="col-md-2">
+    <div class="col-12 col-md-3"><label class="form-label">Nome</label><input class="form-control" name="stage_name" placeholder="Ex.: 1º bimestre" required></div>
+    <div class="col-6 col-md-3"><label class="form-label">Início</label><input class="form-control" type="date" name="start" required></div>
+    <div class="col-6 col-md-3"><label class="form-label">Fim</label><input class="form-control" type="date" name="end" required></div>
+    <div class="col-12 col-md-2">
       <label class="form-label">Dias</label>
       <div class="d-flex flex-wrap gap-2">
         {% for i, n in [(0,'Seg'),(1,'Ter'),(2,'Qua'),(3,'Qui'),(4,'Sex'),(5,'Sáb'),(6,'Dom')] %}
@@ -19,13 +19,14 @@
         {% endfor %}
       </div>
     </div>
-    <div class="col-md-1 d-grid"><button class="btn btn-success" type="submit"><i class="bi bi-save2 me-1"></i>Salvar</button></div>
+    <div class="col-12 col-md-1 d-grid"><button class="btn btn-success" type="submit"><i class="bi bi-save2 me-1"></i>Salvar</button></div>
   </form>
 </div>
 
 <div class="card p-3">
   <h5 class="mb-3">Etapas globais cadastradas</h5>
-  <div class="table-responsive">
+  <!-- Tabela para md+ -->
+  <div class="table-responsive d-none d-md-block">
     <table class="table table-sm">
       <thead><tr><th>Nome</th><th>Período</th><th>Dias</th><th class="text-end">Ações</th></tr></thead>
       <tbody>
@@ -65,6 +66,43 @@
       {% endfor %}
       </tbody>
     </table>
+  </div>
+
+  <!-- Cards para xs-sm -->
+  <div class="d-block d-md-none">
+    <div class="list-group">
+      {% for e in stages %}
+      <div class="list-group-item">
+        <div class="fw-semibold">{{ e.name }}</div>
+        <div class="text-muted small">{{ e.start }} → {{ e.end }} • Dias: {{ e.weekdays }}</div>
+        <div class="d-flex gap-2 mt-2">
+          <a class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" href="#gem-{{ e.id }}" role="button" aria-expanded="false" aria-controls="gem-{{ e.id }}"><i class="bi bi-pencil-square"></i> Editar</a>
+          <form method="post" action="{{ url_for('teacher.delete_global_stage', stage_id=e.id) }}" onsubmit="return confirm('Excluir etapa global?')">
+            <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+          </form>
+        </div>
+        <div class="collapse mt-2" id="gem-{{ e.id }}">
+          <form method="post" action="{{ url_for('teacher.edit_global_stage', stage_id=e.id) }}" class="row g-2 align-items-end">
+            <div class="col-12"><label class="form-label">Nome</label><input class="form-control" name="stage_name" value="{{ e.name }}" required></div>
+            <div class="col-6"><label class="form-label">Início</label><input class="form-control" type="date" name="start" value="{{ e.start }}" required></div>
+            <div class="col-6"><label class="form-label">Fim</label><input class="form-control" type="date" name="end" value="{{ e.end }}" required></div>
+            <div class="col-12">
+              <label class="form-label">Dias</label>
+              <div class="d-flex flex-wrap gap-2">
+                {% set wds = (e.weekdays or '').split(',') %}
+                {% for i, n in [(0,'Seg'),(1,'Ter'),(2,'Qua'),(3,'Qui'),(4,'Sex'),(5,'Sáb'),(6,'Dom')] %}
+                <div class="form-check"><input class="form-check-input" type="checkbox" name="weekday" value="{{i}}" id="gem{{e.id}}d{{i}}" {% if (i|string) in wds %}checked{% endif %}><label class="form-check-label" for="gem{{e.id}}d{{i}}">{{n}}</label></div>
+                {% endfor %}
+              </div>
+            </div>
+            <div class="col-12 d-grid"><button class="btn btn-success" type="submit"><i class="bi bi-save2 me-1"></i>Salvar</button></div>
+          </form>
+        </div>
+      </div>
+      {% else %}
+      <div class="list-group-item text-muted">Nenhuma etapa global cadastrada.</div>
+      {% endfor %}
+    </div>
   </div>
 </div>
 {% endblock %}
