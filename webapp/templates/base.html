@@ -169,6 +169,34 @@
           apply(next);
         });
       })();
+
+      // Toggle de visibilidade de senha para botões com .toggle-pass
+      (function(){
+        function toggleFor(button){
+          const targetId = button.getAttribute('data-target');
+          let input = null;
+          if (targetId) {
+            input = document.getElementById(targetId);
+          } else {
+            // fallback: input imediatamente anterior dentro do input-group
+            input = button.closest('.input-group')?.querySelector('input');
+          }
+        
+          if (!input) return;
+          const isPwd = input.getAttribute('type') === 'password';
+          input.setAttribute('type', isPwd ? 'text' : 'password');
+          const icon = button.querySelector('i');
+          if (icon){
+            icon.classList.toggle('bi-eye', !isPwd);
+            icon.classList.toggle('bi-eye-slash', isPwd);
+          }
+        }
+
+        document.addEventListener('click', function(ev){
+          const b = ev.target.closest('.toggle-pass');
+          if (b){ ev.preventDefault(); toggleFor(b); }
+        });
+      })();
     </script>
   </body>
   </html>
