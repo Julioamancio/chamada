@@ -1259,6 +1259,44 @@ def export_student_docx(class_id: int, student_id: int):
         details.append((sess.date, present))
     pct = (total_p / (total_p + total_a) * 100) if (total_p + total_a) else 0
 
+    # Activities and points for the stage (or all)
+    acts_q = (
+        db.session.query(Activity)
+        .join(Stage, Activity.stage_id == Stage.id)
+        .filter(Stage.class_id == c.id)
+        .order_by(Activity.period_start)
+    )
+    if stage_id:
+        acts_q = acts_q.filter(Activity.stage_id == stage_id)
+    activities = acts_q.all()
+    # Refresh scores to reflect latest attendance
+    for act in activities:
+        try:
+            _update_scores_for_activity(act, class_id=c.id)
+        except Exception:
+            pass
+    # Build per-activity details and totals
+    activities_details = []
+    etapa_total_points = 0.0
+    for act in activities:
+        rows = (
+            DailyScore.query.filter_by(activity_id=act.id, student_id=st.id)
+            .order_by(DailyScore.date)
+            .all()
+        )
+        day_rows = [(r.date, bool(r.present), float(r.points)) for r in rows]
+        act_total = sum(p for _, _, p in day_rows)
+        etapa_total_points += act_total
+        activities_details.append({
+            "title": act.title,
+            "period": f"{act.period_start} → {act.period_end}",
+            "n": len(day_rows),
+            "p_total": float(act.points_total),
+            "ppc": float(act.points_per_call),
+            "rows": day_rows,
+            "act_total": act_total,
+        })
+
     doc = Document()
     section = doc.sections[0]
     section.left_margin, section.right_margin = Inches(0.7), Inches(0.7)
@@ -1293,10 +1331,24 @@ def export_student_docx(class_id: int, student_id: int):
         row[1].text = "Presente" if present else "Ausente"
 
     doc.add_paragraph("")
-    doc.add_paragraph(
-        "Descricao: Registro individual do aluno com presenca/ausencia por data,"
-        " formatado para acompanhamento pedagogico."
-    )
+    # Add activities section with points
+    doc.add_paragraph("Atividades da Etapa")
+    for info in activities_details:
+        p = doc.add_paragraph()
+        p.add_run(f"• {info['title']} — Período: {info['period']}  | N: {info['n']}  | ")
+        p.add_run(f"P_total: {info['p_total']:.2f}  | P/ chamada: {info['ppc']:.2f}")
+        t = doc.add_table(rows=1, cols=3)
+        h = t.rows[0].cells
+        h[0].text = "Dia"; h[1].text = "Presença"; h[2].text = "Pontos"
+        for d, pres, pts in info["rows"]:
+            rw = t.add_row().cells
+            rw[0].text = d
+            rw[1].text = "P" if pres else "A"
+            rw[2].text = f"{pts:.2f}"
+        doc.add_paragraph(f"Total na atividade: {info['act_total']:.2f} ponto(s)")
+        doc.add_paragraph("")
+
+    doc.add_paragraph(f"Total da etapa (pontos): {etapa_total_points:.2f}")
 
     output = BytesIO()
     doc.save(output)
