@@ -90,10 +90,12 @@
           {% if current_user.is_authenticated and current_user.role == 'admin' %}
           <a class="btn btn-sm btn-outline-light text-start" href="{{ url_for('admin.dashboard') }}"><i class="bi bi-people"></i><span class="label ms-1">Admin</span></a>
           <a class="btn btn-sm btn-outline-light text-start" href="{{ url_for('admin.classes') }}"><i class="bi bi-collection"></i><span class="label ms-1">Turmas (Admin)</span></a>
-          <a class="btn btn-sm btn-outline-light text-start" href="{{ url_for('admin.settings') }}"><i class="bi bi-gear"></i><span class="label ms-1">Configuracoes</span></a>
           {% endif %}
           {% if current_user.is_authenticated %}
           <a class="btn btn-sm btn-outline-light text-start" href="{{ url_for('teacher.global_stages') }}"><i class="bi bi-diagram-3"></i><span class="label ms-1">Etapas</span></a>
+          {% endif %}
+          {% if current_user.is_authenticated and current_user.role == 'admin' %}
+          <a class="btn btn-sm btn-outline-light text-start" href="{{ url_for('admin.settings') }}"><i class="bi bi-gear"></i><span class="label ms-1">Configuracoes</span></a>
           {% endif %}
           {% if current_user.is_authenticated %}
           <a class="btn btn-sm btn-outline-light text-start" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right"></i><span class="label ms-1">Sair</span></a>
