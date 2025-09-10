@@ -383,12 +383,15 @@ def _find_stage_for_date(classroom: Classroom, dt_str: str):
 def _attach_stage_to_session(classroom: Classroom, sess: Session, dt_str: str, force_stage: Stage | None = None):
     try:
         from .models import StageSession  # local import in case of circular
-        if StageSession.query.filter_by(session_id=sess.id).first():
+        current = StageSession.query.filter_by(session_id=sess.id).first()
+        target = force_stage or _find_stage_for_date(classroom, dt_str)
+        if not target:
             return
-        stg = force_stage or _find_stage_for_date(classroom, dt_str)
-        if not stg:
-            return
-        db.session.add(StageSession(session_id=sess.id, stage_id=stg.id))
+        if not current:
+            db.session.add(StageSession(session_id=sess.id, stage_id=target.id))
+        elif current.stage_id != target.id:
+            # Corrige mapeamento se a data indicar outra etapa
+            current.stage_id = target.id
     except Exception:
         return
 
@@ -826,22 +829,27 @@ def import_teacher_backup():
 # Activities (Atividades)
 
 def _count_sessions_in_period(class_id: int, start: str, end: str, stage_id: int | None = None) -> int:
+    """Return planned N (aulas) for the interval using stage weekdays.
+
+    If stage has weekdays set, compute count by calendar (exclui feriados).
+    Otherwise, fallback to counting sessions in DB.
+    """
+    try:
+        stg = Stage.query.get(stage_id) if stage_id else None
+        if stg and stg.weekdays:
+            from .calendar_utils import brazil_national_holidays, generate_teaching_dates
+            from datetime import datetime as _dt
+            s = _dt.strptime(start, "%Y-%m-%d").date()
+            e = _dt.strptime(end, "%Y-%m-%d").date()
+            wd = [int(x) for x in stg.weekdays.split(",") if x]
+            holidays = set()
+            for y in {s.year, e.year}:
+                holidays |= brazil_national_holidays(y)
+            return len(generate_teaching_dates(s, e, wd, holidays))
+    except Exception:
+        pass
     q = Session.query.filter_by(class_id=class_id).filter(Session.date >= start, Session.date <= end)
-    sessions = q.all()
-    if not stage_id:
-        return len(sessions)
-    # Prefer StageSession mapping
-    ids = [s.id for s in sessions]
-    if not ids:
-        return 0
-    mapping = {m.session_id for m in StageSession.query.filter(StageSession.session_id.in_(ids), StageSession.stage_id == stage_id).all()}
-    if mapping:
-        return len(mapping)
-    # Fallback by date intersection
-    stg = Stage.query.get(stage_id)
-    if not stg:
-        return len(sessions)
-    return len(sessions)
+    return q.count()
 
 
 def _update_scores_for_activity(activity: Activity, class_id: int) -> None:
@@ -852,7 +860,7 @@ def _update_scores_for_activity(activity: Activity, class_id: int) -> None:
     start, end = activity.period_start, activity.period_end
     q = Session.query.filter_by(class_id=class_id).filter(Session.date >= start, Session.date <= end)
     cand = q.order_by(Session.date).all()
-    # Prefer restringir pelas sessões efetivamente vinculadas à etapa, se houver mapeamento
+    # Prefer sessions vinculadas à etapa. Complementa com datas que caem na etapa por data/semana.
     sess_ids = [s.id for s in cand]
     sessions = cand
     if sess_ids:
@@ -863,7 +871,20 @@ def _update_scores_for_activity(activity: Activity, class_id: int) -> None:
             ).all()
         }
         if mapped_ids:
-            sessions = [s for s in cand if s.id in mapped_ids]
+            by_map = {s.id: s for s in cand if s.id in mapped_ids}
+            # Add sessions that fall into the activity's stage by date/weekdays
+            extra = []
+            try:
+                stg = Stage.query.get(activity.stage_id)
+                for s in cand:
+                    if s.id in by_map:
+                        continue
+                    stg_by_date = _find_stage_for_date(s.classroom, s.date) if hasattr(s, 'classroom') else _find_stage_for_date(Classroom.query.get(class_id), s.date)
+                    if stg_by_date and stg_by_date.id == activity.stage_id:
+                        extra.append(s)
+            except Exception:
+                extra = []
+            sessions = list(by_map.values()) + extra
     students = Student.query.filter_by(class_id=class_id).all()
     ppc = float(activity.points_per_call)
     for sess in sessions:
@@ -1051,6 +1072,14 @@ def edit_activity(activity_id: int):
     act.points_per_call = ppc
     act.status = status
     db.session.commit()
+    # Harmoniza mapeamentos de sessões do período com a etapa da atividade
+    try:
+        q = Session.query.filter_by(class_id=c.id).filter(Session.date >= start, Session.date <= end)
+        for sess in q.all():
+            _attach_stage_to_session(c, sess, sess.date, force_stage=stg)
+        db.session.commit()
+    except Exception:
+        pass
     _update_scores_for_activity(act, class_id=c.id)
     flash("Atividade atualizada e pontuações recalculadas.", "success")
     return redirect(url_for("teacher.activities", class_id=c.id))
@@ -1066,6 +1095,14 @@ def recalc_activity(activity_id: int):
     if c.owner_id != current_user.id and current_user.role != "admin":
         flash("Sem permissão.", "danger")
         return redirect(url_for("teacher.dashboard"))
+    # Ajusta mapeamento das sessões do período para a etapa da atividade
+    try:
+        q = Session.query.filter_by(class_id=c.id).filter(Session.date >= stg.start, Session.date <= stg.end)
+        for sess in q.all():
+            _attach_stage_to_session(c, sess, sess.date, force_stage=stg)
+        db.session.commit()
+    except Exception:
+        pass
     _update_scores_for_activity(act, class_id=c.id)
     flash("Pontuações recalculadas a partir das chamadas.", "success")
     return redirect(url_for("teacher.activities", class_id=c.id))
