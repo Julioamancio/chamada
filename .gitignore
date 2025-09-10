@@ -26,3 +26,5 @@ instance/
 .pytest_cache/
 
 scripts/id_ed25519*
+
+NUL
