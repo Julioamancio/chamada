@@ -12,6 +12,24 @@
 <div class="row g-3">
   <div class="col-md-6">
     <div class="card p-3 h-100">
+      <h5 class="mb-3">{{ _('Idioma') }}</h5>
+      <form class="row g-2 align-items-end" method="post" action="{{ url_for('teacher.set_lang') }}">
+        <div class="col-12 col-sm-8">
+          <label class="form-label">{{ _('Idioma') }}</label>
+          <select class="form-select" name="lang">
+            {% for code, label in supported_langs %}
+              <option value="{{ code }}" {% if current_lang == code %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-sm-4 d-grid">
+          <button class="btn btn-primary" type="submit">OK</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
       <h5 class="mb-3">Perfil do administrador</h5>
       <form method="post" action="{{ url_for('admin.update_profile') }}">
         <div class="mb-2">

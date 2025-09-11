@@ -8,7 +8,7 @@
   <a class="btn btn-outline-secondary me-2" href="{{ url_for('teacher.calls', class_id=classroom.id) }}"><i class="bi bi-clipboard-check me-1"></i>Chamadas</a>
   <a class="btn btn-outline-secondary me-2" href="{{ url_for('teacher.activities', class_id=classroom.id) }}"><i class="bi bi-clipboard-data me-1"></i>Atividades</a>
   <a class="btn btn-outline-primary me-2" href="{{ url_for('teacher.reports', class_id=classroom.id) }}"><i class="bi bi-bar-chart-line me-1"></i>Relatórios</a>
-  <a class="btn btn-secondary" href="{{ url_for('teacher.dashboard') }}"><i class="bi bi-arrow-left-circle me-1"></i>Voltar</a>
+  <a class="btn btn-secondary" href="{{ url_for('teacher.dashboard') }}"><i class="bi bi-arrow-left-circle me-1"></i>{{ _('Voltar') }}</a>
   </div>
 
 <div class="card p-3 mb-3">
@@ -22,7 +22,7 @@
   <div class="col-md-6">
     <div class="card p-3">
       <div class="d-flex align-items-center mb-2">
-        <h5 class="me-auto mb-0">Alunos</h5>
+        <h5 class="me-auto mb-0">{{ _('Alunos') }}</h5>
         <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#studentsCollapse" aria-expanded="false" aria-controls="studentsCollapse">
           <i class="bi bi-arrows-collapse me-1"></i>Recolher
         </button>
@@ -59,7 +59,7 @@
   <div class="col-md-6">
     <div class="card p-3">
       <div class="d-flex align-items-center mb-2">
-        <h5 class="me-auto">Chamada</h5>
+        <h5 class="me-auto">{{ _('Chamada') }}</h5>
         <form class="d-flex align-items-center" method="get" action="{{ url_for('teacher.class_detail', class_id=classroom.id) }}">
           <input class="form-control form-control-sm me-2" type="date" name="date" value="{{ att_date }}">
           <button class="btn btn-sm btn-outline-secondary" type="submit"><i class="bi bi-arrow-repeat"></i></button>
@@ -81,10 +81,11 @@
             </div>
           {% endfor %}
         </div>
-        <div class="d-flex gap-2 mt-3">
-          <button class="btn btn-outline-secondary" type="button" id="btn-all"><i class="bi bi-check2-all me-1"></i>Todos P</button>
-          <button class="btn btn-outline-secondary" type="button" id="btn-none"><i class="bi bi-x-circle me-1"></i>Todos A</button>
-          <button class="btn btn-success ms-auto" type="submit" {% if current_user.role not in ['teacher','admin'] %}disabled title="Apenas professores/administradores podem salvar"{% endif %}><i class="bi bi-check2-circle me-1"></i>Salvar chamada</button>
+        <div class="d-flex gap-2 mt-3 align-items-center">
+          <button class="btn btn-outline-secondary" type="button" id="btn-all"><i class="bi bi-check2-all me-1"></i>{{ _('Todos P') }}</button>
+          <button class="btn btn-outline-secondary" type="button" id="btn-none"><i class="bi bi-x-circle me-1"></i>{{ _('Todos A') }}</button>
+          <div class="ms-auto small text-muted" id="autosave-status"></div>
+          <button class="btn btn-success" type="submit" {% if current_user.role not in ['teacher','admin'] %}disabled title="Apenas professores/administradores podem salvar"{% endif %}><i class="bi bi-check2-circle me-1"></i>{{ _('Salvar chamada') }}</button>
         </div>
       </form>
       <hr/>
@@ -119,10 +120,36 @@
       if(hidden){ hidden.checked = !!present; }
       document.querySelectorAll('.present-copy[value="'+id+'"]').forEach(inp => inp.checked = !!present);
     }
+    const statusEl = document.getElementById('autosave-status');
+    let saveTimer = null;
+    let saving = false;
+    function setStatus(msg){ if(statusEl){ statusEl.textContent = msg || ''; } }
+    async function doAutoSave(){
+      try{
+        saving = true; setStatus('Salvando...');
+        const form = document.getElementById('att-form');
+        if(!form) return;
+        const fd = new FormData(form);
+        // Compose present[] from hidden checkboxes
+        // (native FormData already includes them)
+        await fetch(form.action, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'fetch' } });
+        const d = new Date();
+        setStatus('Salvo automaticamente às ' + d.toLocaleTimeString());
+      }catch(e){
+        setStatus('Erro ao salvar automaticamente');
+      }finally{
+        saving = false;
+      }
+    }
+    function scheduleSave(){
+      if(saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(doAutoSave, 600);
+    }
     document.querySelectorAll('.pa-radio').forEach(r => {
       r.addEventListener('change', () => {
         const id = parseInt(r.dataset.id,10);
         setPresent(id, r.dataset.val === 'P');
+        scheduleSave();
       });
     });
     document.querySelectorAll('.pa-radio:checked').forEach(r => {
@@ -131,9 +158,11 @@
     });
     document.getElementById('btn-all').addEventListener('click', () => {
       document.querySelectorAll('.pa-radio[data-val="P"]').forEach(r => { r.checked = true; r.dispatchEvent(new Event('change')); });
+      scheduleSave();
     });
     document.getElementById('btn-none').addEventListener('click', () => {
       document.querySelectorAll('.pa-radio[data-val="A"]').forEach(r => { r.checked = true; r.dispatchEvent(new Event('change')); });
+      scheduleSave();
     });
   })();
   // Abrir a lista de alunos automaticamente em telas médias+ e deixar recolhida no mobile

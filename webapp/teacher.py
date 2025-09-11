@@ -13,6 +13,7 @@ from flask import (
     flash,
     send_file,
     current_app,
+    session,
 )
 from flask_login import login_required, current_user
 
@@ -133,6 +134,11 @@ def class_detail(class_id: int):
         Student.query.filter_by(class_id=c.id).order_by(Student.name).all()
     )
     s = get_or_create_session(c, dt)
+    # Garante que a sessão tente se vincular à etapa correspondente pela data
+    try:
+        _attach_stage_to_session(c, s, dt)
+    except Exception:
+        pass
     entries = {e.student_id: bool(e.present) for e in s.entries}
     stages = Stage.query.filter_by(class_id=c.id).order_by(Stage.name).all()
     return render_template(
@@ -228,6 +234,9 @@ def save_attendance(class_id: int):
     except Exception:
         # never fail saving attendance due to scoring update
         pass
+    # For fetch/AJAX autosave, avoid redirect payload
+    if request.headers.get("X-Requested-With"):
+        return ("", 204)
     flash("Chamada salva.", "success")
     return redirect(url_for("teacher.class_detail", class_id=class_id, date=dt))
 
@@ -329,7 +338,7 @@ def calls(class_id: int):
         start, end = stg.start, stg.end
         q = q.filter(Session.date >= start, Session.date <= end)
     sessions = q.order_by(Session.date.desc()).all()
-    # Build counts per session + stage name
+    # Build counts per session + stage name/id
     rows = []
     total_students = Student.query.filter_by(class_id=c.id).count()
     # Map session -> stage via StageSession when available
@@ -345,13 +354,22 @@ def calls(class_id: int):
         pres = sum(1 for e in s.entries if e.present)
         # Resolve stage name: from mapping or by date fallback
         st_name = None
-        sid = mapping.get(s.id)
-        if sid and stage_by_id.get(sid):
-            st_name = stage_by_id[sid].name
+        st_id = mapping.get(s.id)
+        if st_id and stage_by_id.get(st_id):
+            st_name = stage_by_id[st_id].name
         else:
             st = _find_stage_for_date(c, s.date)
-            st_name = st.name if st else None
-        rows.append({"date": s.date, "present": pres, "absent": total_students - pres, "stage": st_name})
+            if st:
+                st_name = st.name
+                st_id = st.id
+        rows.append({
+            "session_id": s.id,
+            "date": s.date,
+            "present": pres,
+            "absent": total_students - pres,
+            "stage": st_name,
+            "stage_id": st_id,
+        })
     stages = Stage.query.filter_by(class_id=c.id).order_by(Stage.name).all()
     return render_template("teacher/calls.html", classroom=c, stages=stages, rows=rows, selected_stage=stage_id)
 
@@ -394,6 +412,87 @@ def _attach_stage_to_session(classroom: Classroom, sess: Session, dt_str: str, f
             current.stage_id = target.id
     except Exception:
         return
+
+
+@bp.route("/classes/<int:class_id>/calls/<int:session_id>/set_stage", methods=["POST"])
+@login_required
+@teacher_required
+def set_session_stage(class_id: int, session_id: int):
+    """Define manualmente a etapa de uma chamada (sessão).
+    Cria ou atualiza o vínculo em StageSession. Se "stage_id" vier vazio,
+    tenta remover o vínculo existente.
+    """
+    c = Classroom.query.get_or_404(class_id)
+    if not (current_user.role == "admin" or c.owner_id == current_user.id):
+        flash("Sem permissao.", "danger")
+        return redirect(url_for("teacher.dashboard"))
+    sess = Session.query.get_or_404(session_id)
+    try:
+        from .models import StageSession
+        stage_id = request.form.get("stage_id", type=int)
+        mapping = StageSession.query.filter_by(session_id=sess.id).first()
+        if stage_id:
+            # valida se a etapa pertence à turma
+            stg = Stage.query.get_or_404(stage_id)
+            if stg.class_id != c.id:
+                flash("Etapa inválida para esta turma.", "warning")
+                return redirect(url_for("teacher.calls", class_id=class_id))
+            if mapping:
+                mapping.stage_id = stage_id
+            else:
+                db.session.add(StageSession(session_id=sess.id, stage_id=stage_id))
+        else:
+            # remover vínculo
+            if mapping:
+                db.session.delete(mapping)
+        db.session.commit()
+        flash("Etapa da chamada atualizada.", "success")
+    except Exception:
+        flash("Falha ao atualizar etapa da chamada.", "danger")
+    return redirect(url_for("teacher.calls", class_id=class_id))
+
+
+@bp.route("/classes/<int:class_id>/calls/<int:session_id>/delete", methods=["POST"])
+@login_required
+@teacher_required
+def delete_call(class_id: int, session_id: int):
+    """Exclui a chamada (sessão) e seus vínculos/entradas."""
+    c = Classroom.query.get_or_404(class_id)
+    if not (current_user.role == "admin" or c.owner_id == current_user.id):
+        flash("Sem permissao.", "danger")
+        return redirect(url_for("teacher.dashboard"))
+    sess = Session.query.get_or_404(session_id)
+    if sess.class_id != c.id:
+        flash("Chamada inválida.", "warning")
+        return redirect(url_for("teacher.calls", class_id=class_id))
+    try:
+        from .models import StageSession
+        # remover mapeamento etapa -> sessão se existir
+        m = StageSession.query.filter_by(session_id=sess.id).first()
+        if m:
+            db.session.delete(m)
+        # remover a sessão (AttendanceEntry tem cascade)
+        db.session.delete(sess)
+        db.session.commit()
+        flash("Chamada excluída.", "success")
+    except Exception:
+        flash("Falha ao excluir chamada.", "danger")
+    return redirect(url_for("teacher.calls", class_id=class_id))
+
+
+@bp.route("/set-lang", methods=["POST"])
+@login_required
+@teacher_required
+def set_lang():
+    """Atualiza o idioma preferido do usuário na sessão.
+    Suporta: 'pt-br' (Português), 'en' (English), 'zh' (中文).
+    """
+    lang = (request.form.get("lang") or "pt-br").lower()
+    if lang not in ("pt-br", "en", "zh"):
+        lang = "pt-br"
+    session["lang"] = lang
+    # evita mensagem para não poluir a UI; apenas redireciona
+    return redirect(request.referrer or url_for("teacher.dashboard"))
 
 
 @bp.route("/classes/<int:class_id>/stages/link", methods=["POST"])

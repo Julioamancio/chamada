@@ -8,9 +8,9 @@
 <div class="card p-3 mb-3">
   <form class="row g-2 align-items-end" method="get" action="">
     <div class="col-12 col-md-6">
-      <label class="form-label">Etapa</label>
+      <label class="form-label">{{ _('Etapa') }}</label>
       <select class="form-select" name="stage_id" onchange="this.form.submit()">
-        <option value="">Todas as aulas</option>
+        <option value="">{{ _('Todas as aulas') }}</option>
         {% for stg in stages %}
           <option value="{{ stg.id }}" {% if selected_stage and selected_stage == stg.id %}selected{% endif %}>{{ stg.name }} ({{ stg.start }} → {{ stg.end }})</option>
         {% endfor %}
@@ -23,15 +23,29 @@
   <!-- Tabela em md+ -->
   <div class="table-responsive d-none d-md-block">
     <table class="table table-sm">
-      <thead><tr><th>Data</th><th>Presentes</th><th>Ausentes</th><th>Etapa</th><th></th></tr></thead>
+      <thead><tr><th>{{ _('Data') }}</th><th>{{ _('Presentes') }}</th><th>{{ _('Ausentes') }}</th><th>{{ _('Etapa') }}</th><th></th></tr></thead>
       <tbody>
         {% for r in rows %}
           <tr>
             <td>{{ r.date }}</td>
             <td>{{ r.present }}</td>
             <td>{{ r.absent }}</td>
-            <td>{{ r.stage or '-' }}</td>
-            <td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('teacher.class_detail', class_id=classroom.id, date=r.date) }}"><i class="bi bi-eye"></i> Ver</a></td>
+            <td>
+              <form method="post" action="{{ url_for('teacher.set_session_stage', class_id=classroom.id, session_id=r.session_id) }}">
+                <select class="form-select form-select-sm d-inline w-auto" name="stage_id" onchange="this.form.submit()" title="Vincular etapa">
+                  <option value="">-</option>
+                  {% for stg in stages %}
+                    <option value="{{ stg.id }}" {% if r.stage_id and r.stage_id == stg.id %}selected{% endif %}>{{ stg.name }}</option>
+                  {% endfor %}
+                </select>
+              </form>
+            </td>
+            <td class="text-end">
+              <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('teacher.class_detail', class_id=classroom.id, date=r.date) }}"><i class="bi bi-eye"></i> Ver</a>
+              <form method="post" class="d-inline" action="{{ url_for('teacher.delete_call', class_id=classroom.id, session_id=r.session_id) }}" onsubmit="return confirm('Excluir esta chamada? Esta ação não pode ser desfeita.')">
+                <button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-trash"></i></button>
+              </form>
+            </td>
           </tr>
         {% else %}
           <tr><td colspan="5" class="text-muted">Nenhuma chamada registrada para o filtro selecionado.</td></tr>
@@ -48,9 +62,22 @@
         <div class="d-flex align-items-center">
           <div class="me-auto">
             <div class="fw-semibold">{{ r.date }}</div>
+            <form method="post" action="{{ url_for('teacher.set_session_stage', class_id=classroom.id, session_id=r.session_id) }}" class="mt-1">
+              <select class="form-select form-select-sm" name="stage_id" onchange="this.form.submit()">
+                <option value="">-</option>
+                {% for stg in stages %}
+                  <option value="{{ stg.id }}" {% if r.stage_id and r.stage_id == stg.id %}selected{% endif %}>{{ stg.name }}</option>
+                {% endfor %}
+              </select>
+            </form>
             <div class="text-muted small">P: {{ r.present }} • A: {{ r.absent }} • {{ r.stage or '-' }}</div>
           </div>
-          <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('teacher.class_detail', class_id=classroom.id, date=r.date) }}"><i class="bi bi-eye"></i></a>
+          <div class="ms-2">
+            <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('teacher.class_detail', class_id=classroom.id, date=r.date) }}"><i class="bi bi-eye"></i></a>
+            <form method="post" class="d-inline" action="{{ url_for('teacher.delete_call', class_id=classroom.id, session_id=r.session_id) }}" onsubmit="return confirm('Excluir esta chamada?')">
+              <button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-trash"></i></button>
+            </form>
+          </div>
         </div>
       </div>
       {% else %}

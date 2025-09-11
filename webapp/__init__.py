@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from flask import Flask
+from flask import Flask, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 import threading
@@ -154,6 +154,104 @@ def create_app() -> Flask:
             break
         url = url_for("admin.brand_logo") if logo else None
         return {"brand_logo_url": url}
+
+    # Idioma atual + função de tradução simples
+    TRANSLATIONS = {
+        "en": {
+            "Chamada": "Attendance",
+            "Minhas turmas": "My classes",
+            "Admin": "Admin",
+            "Turmas (Admin)": "Classes (Admin)",
+            "Etapas": "Stages",
+            "Atividades": "Activities",
+            "Configurações": "Settings",
+            "Configuracoes": "Settings",
+            "Sair": "Sign out",
+            "Voltar": "Back",
+            "Chamadas": "Calls",
+            "Data": "Date",
+            "Presentes": "Present",
+            "Ausentes": "Absent",
+            "Etapa": "Stage",
+            "Todas as aulas": "All classes",
+            "Ver": "View",
+            "Alunos": "Students",
+            "Chamada": "Attendance",
+            "Salvar chamada": "Save attendance",
+            "Todos P": "All Present",
+            "Todos A": "All Absent",
+            "Calendário": "Calendar",
+            "Idioma": "Language",
+            "Português": "Portuguese",
+            "English": "English",
+            "中文": "Chinese",
+            "Tema (claro/escuro)": "Theme (light/dark)",
+            "Claro": "Light",
+            "Escuro": "Dark",
+            "Preferência salva neste navegador.": "Preference saved in this browser.",
+            "Backup das minhas turmas": "Backup my classes",
+            "Baixar backup (JSON)": "Download backup (JSON)",
+            "Importar": "Import",
+        },
+        "zh": {
+            "Chamada": "考勤",
+            "Minhas turmas": "我的班级",
+            "Admin": "管理员",
+            "Turmas (Admin)": "班级（管理员）",
+            "Etapas": "阶段",
+            "Atividades": "活动",
+            "Configurações": "设置",
+            "Configuracoes": "设置",
+            "Sair": "退出",
+            "Voltar": "返回",
+            "Chamadas": "点名记录",
+            "Data": "日期",
+            "Presentes": "到",
+            "Ausentes": "缺",
+            "Etapa": "阶段",
+            "Todas as aulas": "全部课程",
+            "Ver": "查看",
+            "Alunos": "学生",
+            "Chamada": "考勤",
+            "Salvar chamada": "保存考勤",
+            "Todos P": "全部到",
+            "Todos A": "全部缺",
+            "Calendário": "日历",
+            "Idioma": "语言",
+            "Português": "葡萄牙语",
+            "English": "英语",
+            "中文": "中文",
+            "Tema (claro/escuro)": "主题（亮/暗）",
+            "Claro": "亮色",
+            "Escuro": "暗色",
+            "Preferência salva neste navegador.": "偏好已保存在此浏览器。",
+            "Backup das minhas turmas": "备份我的班级",
+            "Baixar backup (JSON)": "下载备份（JSON）",
+            "Importar": "导入",
+        },
+    }
+
+    @app.context_processor
+    def inject_lang():
+        try:
+            lang = session.get("lang", "pt-br")
+        except Exception:
+            lang = "pt-br"
+
+        def _(text: str) -> str:
+            if lang == "pt-br":
+                return text
+            return TRANSLATIONS.get(lang, {}).get(text, text)
+
+        return {
+            "current_lang": lang,
+            "supported_langs": [
+                ("pt-br", _("Português")),
+                ("en", _("English")),
+                ("zh", _("中文")),
+            ],
+            "_": _,
+        }
 
     # Auto-init DB on startup (and ensure a default admin exists)
     with app.app_context():
