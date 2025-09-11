@@ -1,28 +1,28 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
 {% block content %}
 <div class="d-flex align-items-center mb-3">
-  <h3 class="me-auto">Usuários</h3>
-  <a class="btn btn-secondary me-2" href="{{ url_for('teacher.dashboard') }}">Á�rea do Professor</a>
-  <a class="btn btn-outline-secondary" href="{{ url_for('auth.logout') }}">Sair</a>
+  <h3 class="me-auto">{{ _("Usuários") }}</h3>
+  <a class="btn btn-secondary me-2" href="{{ url_for('teacher.dashboard') }}">{{ _("Área do Professor") }}</a>
+  <a class="btn btn-outline-secondary" href="{{ url_for('auth.logout') }}">{{ _("Sair") }}</a>
   </div>
 
 <form class="card p-3 mb-4" method="post" action="{{ url_for('admin.create_user') }}">
   <div class="row g-2">
-    <div class="col-md-3"><input class="form-control" name="name" placeholder="Nome" required></div>
-    <div class="col-md-3"><input class="form-control" type="email" name="email" placeholder="E-mail" required></div>
-    <div class="col-md-3"><input class="form-control" type="password" name="password" placeholder="Senha" required></div>
+    <div class="col-md-3"><input class="form-control" name="name" placeholder="{{ _("Nome") }}" required></div>
+    <div class="col-md-3"><input class="form-control" type="email" name="email" placeholder="{{ _("E-mail") }}" required></div>
+    <div class="col-md-3"><input class="form-control" type="password" name="password" placeholder="{{ _("Senha") }}" required></div>
     <div class="col-md-2">
       <select class="form-select" name="role">
-        <option value="teacher">Professor</option>
-        <option value="admin">Admin</option>
+        <option value="teacher">{{ _("Professor") }}</option>
+        <option value="admin">{{ _("Admin") }}</option>
       </select>
     </div>
-    <div class="col-md-1 d-grid"><button class="btn btn-primary" type="submit">Criar</button></div>
+    <div class="col-md-1 d-grid"><button class="btn btn-primary" type="submit">{{ _("Criar") }}</button></div>
   </div>
   </form>
 
 <table class="table table-striped">
-  <thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th style="width:1%"></th></tr></thead>
+  <thead><tr><th>Nome</th><th>{{ _("E-mail") }}</th><th>Perfil</th><th style="width:1%"></th></tr></thead>
   <tbody>
   {% for u in users %}
     <tr>
@@ -30,8 +30,8 @@
       <td>{{ u.email }}</td>
       <td>{{ u.role }}</td>
       <td>
-        <form method="post" action="{{ url_for('admin.delete_user', user_id=u.id) }}" onsubmit="return confirm('Excluir este usuário?')">
-          <button class="btn btn-sm btn-outline-danger">Excluir</button>
+        <form method="post" action="{{ url_for('admin.delete_user', user_id=u.id) }}" onsubmit="return confirm('{{ _('Excluir este usuário?') }}')">
+          <button class="btn btn-sm btn-outline-danger">{{ _("Excluir") }}</button>
         </form>
       </td>
     </tr>
@@ -39,5 +39,6 @@
   </tbody>
   </table>
 {% endblock %}
+
 
 

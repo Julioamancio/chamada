@@ -1,17 +1,17 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="page-head d-flex align-items-center mb-3">
-  <h3 class="me-auto">Minhas turmas</h3>
+  <h3 class="me-auto">{{ _('Minhas turmas') }}</h3>
   {% if current_user.role == 'admin' %}
-  <a class="btn btn-outline-secondary me-2" href="{{ url_for('admin.dashboard') }}">Admin</a>
+  <a class="btn btn-outline-secondary me-2" href="{{ url_for('admin.dashboard') }}">{{ _('Admin') }}</a>
   {% endif %}
-  <a class="btn btn-outline-secondary" href="{{ url_for('auth.logout') }}">Sair</a>
+  <a class="btn btn-outline-secondary" href="{{ url_for('auth.logout') }}">{{ _('Sair') }}</a>
   </div>
 
 <form class="card p-3 mb-4" method="post" action="{{ url_for('teacher.create_class') }}">
   <div class="row g-2">
-    <div class="col-md-10"><input class="form-control" name="name" placeholder="Nome da turma" required></div>
-    <div class="col-md-2 d-grid"><button class="btn btn-primary" type="submit"><i class="bi bi-plus-circle me-1"></i>Criar turma</button></div>
+    <div class="col-md-10"><input class="form-control" name="name" placeholder="{{ _('Nome da turma') }}" required></div>
+    <div class="col-md-2 d-grid"><button class="btn btn-primary" type="submit"><i class="bi bi-plus-circle me-1"></i>{{ _('Criar turma') }}</button></div>
   </div>
   </form>
 
@@ -20,17 +20,17 @@
     <div class="list-group-item">
       <div class="d-flex align-items-center mb-2">
         <div class="me-auto"><a href="{{ url_for('teacher.class_detail', class_id=c.id) }}"><strong>{{ c.name }}</strong></a>{% if current_user.role == 'admin' and c.owner %} <small class="text-muted">— {{ c.owner.name }}</small>{% endif %}</div>
-        <form class="me-2" method="post" action="{{ url_for('teacher.delete_class', class_id=c.id) }}" onsubmit="return confirm('Excluir turma e registros?')">
+        <form class="me-2" method="post" action="{{ url_for('teacher.delete_class', class_id=c.id) }}" onsubmit="return confirm('{{ _('Excluir turma e registros?') }}')">
           <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
         </form>
       </div>
       <form class="row g-2" method="post" action="{{ url_for('teacher.rename_class', class_id=c.id) }}">
         <div class="col-md-10"><input class="form-control form-control-sm" name="name" value="{{ c.name }}" required></div>
-        <div class="col-md-2 d-grid"><button class="btn btn-sm btn-outline-primary" type="submit"><i class="bi bi-pencil-square me-1"></i>Renomear</button></div>
+        <div class="col-md-2 d-grid"><button class="btn btn-sm btn-outline-primary" type="submit"><i class="bi bi-pencil-square me-1"></i>{{ _('Renomear') }}</button></div>
       </form>
     </div>
   {% else %}
-    <div class="alert alert-info">Nenhuma turma ainda. Crie a primeira acima.</div>
+    <div class="alert alert-info">{{ _('Nenhuma turma ainda. Crie a primeira acima.') }}</div>
   {% endfor %}
   </div>
 {% endblock %}

@@ -1,8 +1,8 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
 {% block content %}
 <div class="page-head d-flex align-items-center mb-3">
-  <h3 class="me-auto">Usuários</h3>
-  <a class="btn btn-secondary me-2" href="{{ url_for('teacher.dashboard') }}">Área do Professor</a>
+  <h3 class="me-auto">UsuÃ¡rios</h3>
+  <a class="btn btn-secondary me-2" href="{{ url_for('teacher.dashboard') }}">Ãrea do Professor</a>
   <a class="btn btn-outline-primary me-2" href="{{ url_for('admin.classes') }}">Turmas</a>
   <a class="btn btn-outline-secondary" href="{{ url_for('auth.logout') }}">Sair</a>
 </div>
@@ -31,7 +31,7 @@
 </form>
 
 <div class="card p-3">
-  <h5 class="mb-3">Lista de usuários</h5>
+  <h5 class="mb-3">Lista de usuÃ¡rios</h5>
   <div class="list-group">
     {% for u in users %}
     <div class="list-group-item">
@@ -55,7 +55,7 @@
         </div>
         <div class="col-12 d-flex gap-2 justify-content-end">
           <button class="btn btn-sm btn-primary" type="submit">Salvar</button>
-          <form method="post" action="{{ url_for('admin.delete_user', user_id=u.id) }}" onsubmit="return confirm('Excluir este usuário?')">
+          <form method="post" action="{{ url_for('admin.delete_user', user_id=u.id) }}" onsubmit="return confirm('Excluir este usuÃ¡rio?')">
             <button class="btn btn-sm btn-outline-danger" type="submit">Excluir</button>
           </form>
         </div>
@@ -65,3 +65,4 @@
   </div>
 </div>
 {% endblock %}
+

@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="{{ current_lang or 'pt-br' }}">
   <head>
     <meta charset="utf-8">
@@ -117,7 +117,7 @@
         .btn{ padding: .35rem .6rem; font-size: .95rem; }
       }
 
-      /* Cabeçalhos e botões responsivos */
+      /* CabeÃ§alhos e botÃµes responsivos */
       .page-head{ flex-wrap: wrap; gap: .5rem; }
       .page-head h3{ margin: 0; font-size: clamp(1rem, 0.95rem + 1vw, 1.35rem); }
       @media (max-width: 575.98px) {
@@ -125,7 +125,7 @@
         .page-head .btn{ width: 100%; }
       }
 
-      /* Evitar sobreposição quando textos de botões são longos */
+      /* Evitar sobreposiÃ§Ã£o quando textos de botÃµes sÃ£o longos */
       .btn{ white-space: normal; }
       .student-name{ font-size: clamp(1rem, 0.95rem + .6vw, 1.1rem); }
 
@@ -157,7 +157,7 @@
         background: #111827;
       }
       [data-bs-theme='dark'] .sidebar .nav .btn i{
-        color: #ffffff !important; /* ícones brancos no dark */
+        color: #ffffff !important; /* Ã­cones brancos no dark */
       }
       [data-bs-theme='dark'] .card{
         border-color: #1f2937;
@@ -197,9 +197,9 @@
           {% endif %}
           {% if current_user.is_authenticated %}
             {% if current_user.role == 'admin' %}
-            <a class="btn btn-sm btn-outline-light text-start" href="{{ url_for('admin.settings') }}"><i class="bi bi-gear"></i><span class="label ms-1">{{ _('Configurações') }}</span></a>
+            <a class="btn btn-sm btn-outline-light text-start" href="{{ url_for('admin.settings') }}"><i class="bi bi-gear"></i><span class="label ms-1">{{ _('ConfiguraÃ§Ãµes') }}</span></a>
             {% else %}
-            <a class="btn btn-sm btn-outline-light text-start" href="{{ url_for('teacher.settings') }}"><i class="bi bi-gear"></i><span class="label ms-1">{{ _('Configurações') }}</span></a>
+            <a class="btn btn-sm btn-outline-light text-start" href="{{ url_for('teacher.settings') }}"><i class="bi bi-gear"></i><span class="label ms-1">{{ _('ConfiguraÃ§Ãµes') }}</span></a>
             {% endif %}
           {% endif %}
           {% if current_user.is_authenticated %}
@@ -214,13 +214,13 @@
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
           {% for category, message in messages %}
-            <div class="alert alert-{{ category }}">{{ message }}</div>
+            <div class="alert alert-{{ category }}">{{ _(message) }}</div>
           {% endfor %}
         {% endif %}
       {% endwith %}
       {% block content %}{% endblock %}
       <footer class="mt-5 pt-3 border-top text-muted small text-center">
-        Feito por Júlio Amâncio
+        {{ _('Feito por Júlio Amâncio') }}
       </footer>
       </main>
     </div>
@@ -252,7 +252,7 @@
         });
       })();
 
-      // Toggle de visibilidade de senha para botões com .toggle-pass
+      // Toggle de visibilidade de senha para botÃµes com .toggle-pass
       (function(){
         function toggleFor(button){
           const targetId = button.getAttribute('data-target');
@@ -282,3 +282,5 @@
     </script>
   </body>
   </html>
+
+

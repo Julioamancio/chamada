@@ -231,6 +231,113 @@ def create_app() -> Flask:
         },
     }
 
+    # Complementary translation maps (fallback for keys not present above)
+    SUPP_EN = {
+        "Usuários": "Users",
+        "Área do Professor": "Teacher Area",
+        "Salvar": "Save",
+        "Salvar perfil": "Save profile",
+        "Importar alunos": "Import students",
+        "Atividades criadas": "Created activities",
+        "Etapa (opcional)": "Stage (optional)",
+        "Baixar DOCX da Turma": "Download class DOCX",
+        "Nome da turma": "Class name",
+        "Criar turma": "Create class",
+        "Criar": "Create",
+        "Nome": "Name",
+        "E-mail": "Email",
+        "Senha": "Password",
+        "Perfil": "Role",
+        "Professor": "Teacher",
+        "Professor atual": "Current teacher",
+        "Vincular a": "Assign to",
+        "Vincular": "Assign",
+        "Turmas": "Classes",
+        "Turmas existentes": "Existing classes",
+        "Turma": "Class",
+        "Excluir turma": "Delete class",
+        "Excluir turma e todos os dados?": "Delete class and all data?",
+        "Excluir turma e registros?": "Delete class and records?",
+        "Excluir": "Delete",
+        "Entrar": "Sign in",
+        "Mostrar/ocultar senha": "Show/hide password",
+        "Feito por Júlio Amâncio": "Made by Júlio Amâncio",
+        "Logo (PNG/JPG/SVG)": "Logo (PNG/JPG/SVG)",
+        "Enviar": "Upload",
+        "O logo será exibido no canto superior esquerdo.": "The logo will appear at the top-left.",
+        "Logo da aplicação": "Application logo",
+        "Arquivo (PNG/JPG/SVG)": "File (PNG/JPG/SVG)",
+        "Backup do banco de dados": "Database backup",
+        "Baixe uma cópia do arquivo SQLite atual.": "Download a copy of the current SQLite file.",
+        "Baixar backup (app.db)": "Download backup (app.db)",
+        "Importar banco (.db)": "Import database (.db)",
+        "Importar e substituir": "Import and replace",
+        "Alterar senha do administrador": "Change admin password",
+        "Nova senha": "New password",
+        "Confirmação da senha": "Confirm password",
+        "Atualizar senha": "Update password",
+        "Nenhuma turma cadastrada.": "No classes found.",
+        "Nenhuma turma ainda. Crie a primeira acima.": "No classes yet. Create the first above.",
+        "Etapas Globais": "Global stages",
+        "Etapas globais cadastradas": "Registered global stages",
+        "Etapas cadastradas": "Registered stages",
+        "Excluir etapa?": "Delete stage?",
+        "Excluir etapa global?": "Delete global stage?",
+    }
+
+    SUPP_ZH = {
+        "Usuários": "用户",
+        "Área do Professor": "教师区",
+        "Salvar": "保存",
+        "Salvar perfil": "保存资料",
+        "Importar alunos": "导入学生",
+        "Atividades criadas": "已创建的活动",
+        "Etapa (opcional)": "阶段（可选）",
+        "Baixar DOCX da Turma": "下载班级 DOCX",
+        "Nome da turma": "班级名称",
+        "Criar turma": "创建班级",
+        "Criar": "创建",
+        "Nome": "姓名",
+        "E-mail": "邮箱",
+        "Senha": "密码",
+        "Perfil": "角色",
+        "Professor": "教师",
+        "Professor atual": "当前教师",
+        "Vincular a": "关联到",
+        "Vincular": "关联",
+        "Turmas": "班级",
+        "Turmas existentes": "已有班级",
+        "Turma": "班级",
+        "Excluir turma": "删除班级",
+        "Excluir turma e todos os dados?": "删除班级及其所有数据？",
+        "Excluir turma e registros?": "删除班级和记录？",
+        "Excluir": "删除",
+        "Entrar": "登录",
+        "Mostrar/ocultar senha": "显示/隐藏密码",
+        "Feito por Júlio Amâncio": "由 Júlio Amâncio 创建",
+        "Logo (PNG/JPG/SVG)": "Logo (PNG/JPG/SVG)",
+        "Enviar": "上传",
+        "O logo será exibido no canto superior esquerdo.": "Logo 显示在左上角",
+        "Logo da aplicação": "应用 Logo",
+        "Arquivo (PNG/JPG/SVG)": "文件 (PNG/JPG/SVG)",
+        "Backup do banco de dados": "数据库备份",
+        "Baixe uma cópia do arquivo SQLite atual.": "下载当前 SQLite 文件副本",
+        "Baixar backup (app.db)": "下载备份 (app.db)",
+        "Importar banco (.db)": "导入数据库 (.db)",
+        "Importar e substituir": "导入并替换",
+        "Alterar senha do administrador": "修改管理员密码",
+        "Nova senha": "新密码",
+        "Confirmação da senha": "确认密码",
+        "Atualizar senha": "更新密码",
+        "Nenhuma turma cadastrada.": "暂无班级",
+        "Nenhuma turma ainda. Crie a primeira acima.": "还没有班级，请在上方创建第一个",
+        "Etapas Globais": "全局阶段",
+        "Etapas globais cadastradas": "已注册的全局阶段",
+        "Etapas cadastradas": "已注册的阶段",
+        "Excluir etapa?": "删除阶段？",
+        "Excluir etapa global?": "删除全局阶段？",
+    }
+
     @app.context_processor
     def inject_lang():
         try:
@@ -241,7 +348,11 @@ def create_app() -> Flask:
         def _(text: str) -> str:
             if lang == "pt-br":
                 return text
-            return TRANSLATIONS.get(lang, {}).get(text, text)
+            base = TRANSLATIONS.get(lang, {})
+            if text in base:
+                return base[text]
+            supp = SUPP_EN if lang == "en" else (SUPP_ZH if lang == "zh" else {})
+            return supp.get(text, text)
 
         # Labels das opções de idioma
         if lang == "pt-br":
