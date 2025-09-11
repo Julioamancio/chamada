@@ -2,7 +2,7 @@
 {% block content %}
 <div class="d-flex align-items-center mb-3">
   <h3 class="me-auto">Relatórios — {{ classroom.name }}</h3>
-  <a class="btn btn-secondary" href="{{ url_for('teacher.class_detail', class_id=classroom.id) }}"><i class="bi bi-arrow-left-circle me-1"></i>Voltar</a>
+  <a class="btn btn-secondary" href="{{ url_for('teacher.class_detail', class_id=classroom.id) }}"><i class="bi bi-arrow-left-circle me-1"></i>{{ _('Voltar') }}</a>
 </div>
 
 <div class="row g-3">
@@ -12,7 +12,7 @@
       <p class="text-muted">Documento Word (.docx) com cabeçalho, tabela de presenças/ausências e percentual por aluno, pronto para envio à coordenação.</p>
       <div class="row g-2 align-items-end">
         <div class="col">
-          <label class="form-label">Etapa (opcional)</label>
+          <label class="form-label">{{ _('Etapa (opcional)') }}</label>
           <select id="rptStageAll" class="form-select">
             <option value="">Todas as aulas</option>
             {% for stg in stages %}
@@ -21,7 +21,7 @@
           </select>
         </div>
         <div class="col-auto">
-          <a id="linkAll" class="btn btn-primary" href="{{ url_for('teacher.export_class_docx', class_id=classroom.id) }}"><i class="bi bi-file-earmark-word me-1"></i>Baixar DOCX da Turma</a>
+          <a id="linkAll" class="btn btn-primary" href="{{ url_for('teacher.export_class_docx', class_id=classroom.id) }}"><i class="bi bi-file-earmark-word me-1"></i>{{ _('Baixar DOCX da Turma') }}</a>
         </div>
       </div>
     </div>
@@ -30,7 +30,7 @@
     <div class="card p-3 h-100">
       <h5 class="mb-3">Relatório Individual</h5>
       <div class="mb-2">
-        <label class="form-label">Etapa (opcional)</label>
+        <label class="form-label">{{ _('Etapa (opcional)') }}</label>
         <select id="rptStageInd" class="form-select">
           <option value="">Todas as aulas</option>
           {% for stg in stages %}

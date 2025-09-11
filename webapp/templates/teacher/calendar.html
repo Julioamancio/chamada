@@ -2,7 +2,7 @@
 {% block content %}
 <div class="page-head d-flex align-items-center mb-3">
   <h3 class="me-auto">Calendario — {{ classroom.name }}</h3>
-  <a class="btn btn-secondary" href="{{ url_for('teacher.class_detail', class_id=classroom.id) }}"><i class="bi bi-arrow-left-circle me-1"></i>Voltar</a>
+  <a class="btn btn-secondary" href="{{ url_for('teacher.class_detail', class_id=classroom.id) }}"><i class="bi bi-arrow-left-circle me-1"></i>{{ _('Voltar') }}</a>
 </div>
 
 <div class="card p-3 mb-3">
@@ -19,13 +19,13 @@
         {% endfor %}
       </div>
     </div>
-    <div class="col-md-1 d-grid"><button class="btn btn-success" type="submit"><i class="bi bi-save2 me-1"></i>Salvar</button></div>
+    <div class="col-md-1 d-grid"><button class="btn btn-success" type="submit"><i class="bi bi-save2 me-1"></i>{{ _('Salvar') }}</button></div>
   </form>
 </div>
 
 {% if stages %}
 <div class="card p-3 mb-3">
-  <h5 class="mb-3">Etapas cadastradas</h5>
+  <h5 class="mb-3">{{ _('Etapas cadastradas') }}</h5>
   <div class="table-responsive">
     <table class="table table-sm">
       <thead><tr><th>Nome</th><th>Periodo</th><th>Dias</th><th class="text-end">Acoes</th></tr></thead>
@@ -37,7 +37,7 @@
           <td>{{ e.weekdays }}</td>
           <td class="text-end">
             <a class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="collapse" href="#edit-stage-{{ e.id }}" role="button" aria-expanded="false" aria-controls="edit-stage-{{ e.id }}"><i class="bi bi-pencil-square"></i> Editar</a>
-            <form method="post" action="{{ url_for('teacher.delete_stage', class_id=classroom.id, stage_id=e.id) }}" onsubmit="return confirm('Excluir etapa?')" class="d-inline">
+            <form method="post" action="{{ url_for('teacher.delete_stage', class_id=classroom.id, stage_id=e.id) }}" onsubmit="return confirm('{{ _('Excluir etapa?') }}')" class="d-inline">
               <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
             </form>
           </td>
@@ -57,7 +57,7 @@
                   {% endfor %}
                 </div>
               </div>
-              <div class="col-md-1 d-grid"><button class="btn btn-success" type="submit"><i class="bi bi-save2 me-1"></i>Salvar</button></div>
+              <div class="col-md-1 d-grid"><button class="btn btn-success" type="submit"><i class="bi bi-save2 me-1"></i>{{ _('Salvar') }}</button></div>
             </form>
           </td>
         </tr>

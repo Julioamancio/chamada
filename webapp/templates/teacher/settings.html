@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="page-head d-flex align-items-center mb-3">
-  <h3 class="me-auto">Configurações</h3>
-  <a class="btn btn-secondary" href="{{ url_for('teacher.dashboard') }}">Voltar</a>
+  <h3 class="me-auto">{{ _('Configurações') }}</h3>
+  <a class="btn btn-secondary" href="{{ url_for('teacher.dashboard') }}">{{ _('Voltar') }}</a>
 </div>
 
 <div class="row g-3">
@@ -11,8 +11,7 @@
       <h5 class="mb-3">{{ _('Idioma') }}</h5>
       <form class="row g-2 align-items-end" method="post" action="{{ url_for('teacher.set_lang') }}">
         <div class="col-12 col-sm-8">
-          <label class="form-label">{{ _('Idioma') }}</label>
-          <select class="form-select" name="lang">
+          <select class="form-select" name="lang" aria-label="{{ _('Idioma') }}">
             {% for code, label in supported_langs %}
               <option value="{{ code }}" {% if current_lang == code %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
@@ -27,12 +26,12 @@
 
   <div class="col-md-6">
     <div class="card p-3 h-100">
-      <h5 class="mb-3">Tema (claro/escuro)</h5>
+      <h5 class="mb-3">{{ _('Tema (claro/escuro)') }}</h5>
       <div class="d-flex align-items-center gap-2 mb-2">
-        <button id="btnThemeLightT" class="btn btn-outline-secondary" type="button"><i class="bi bi-sun"></i> Claro</button>
-        <button id="btnThemeDarkT" class="btn btn-outline-secondary" type="button"><i class="bi bi-moon"></i> Escuro</button>
+        <button id="btnThemeLightT" class="btn btn-outline-secondary" type="button"><i class="bi bi-sun"></i> {{ _('Claro') }}</button>
+        <button id="btnThemeDarkT" class="btn btn-outline-secondary" type="button"><i class="bi bi-moon"></i> {{ _('Escuro') }}</button>
       </div>
-      <div class="small text-muted">Preferência salva neste navegador.</div>
+      <div class="small text-muted">{{ _('Preferência salva neste navegador.') }}</div>
       <script>
         (function(){
           const bL = document.getElementById('btnThemeLightT');
@@ -55,20 +54,21 @@
 
   <div class="col-md-6">
     <div class="card p-3 h-100">
-      <h5 class="mb-3">Backup das minhas turmas</h5>
-      <p class="text-muted">Baixe um arquivo JSON com as turmas, alunos, chamadas e etapas. Você pode reimportar mais tarde.</p>
+      <h5 class="mb-3">{{ _('Backup das minhas turmas') }}</h5>
+      <p class="text-muted">{{ _('Baixe um arquivo JSON com as turmas, alunos, chamadas e etapas. Você pode reimportar mais tarde.') }}</p>
       <div class="d-flex gap-2 mb-3">
-        <a class="btn btn-outline-primary" href="{{ url_for('teacher.export_teacher_backup') }}"><i class="bi bi-download me-1"></i>Baixar backup (JSON)</a>
+        <a class="btn btn-outline-primary" href="{{ url_for('teacher.export_teacher_backup') }}"><i class="bi bi-download me-1"></i>{{ _('Baixar backup (JSON)') }}</a>
       </div>
-      <h6>Importar backup (.json)</h6>
+      <h6>{{ _('Importar backup (.json)') }}</h6>
       <form method="post" action="{{ url_for('teacher.import_teacher_backup') }}" enctype="multipart/form-data">
         <div class="mb-2">
           <input class="form-control" type="file" name="file" accept=".json" required>
         </div>
-        <button class="btn btn-outline-danger" type="submit" onclick="return confirm('Isso criará novas turmas com os dados do arquivo. Continuar?')"><i class="bi bi-upload me-1"></i>Importar</button>
+        <button class="btn btn-outline-danger" type="submit" onclick="return confirm('{{ _('Isso criará novas turmas com os dados do arquivo. Continuar?') }}')"><i class="bi bi-upload me-1"></i>{{ _('Importar') }}</button>
       </form>
-      <div class="small text-muted mt-2">Observação: em caso de nomes de turmas repetidos, será criado um sufixo "(import aaaa-mm-dd)".</div>
+      <div class="small text-muted mt-2">{{ _('Observação: em caso de nomes de turmas repetidos, será criado um sufixo "(import aaaa-mm-dd)".') }}</div>
     </div>
   </div>
 </div>
 {% endblock %}
+

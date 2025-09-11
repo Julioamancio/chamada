@@ -243,13 +243,17 @@ def create_app() -> Flask:
                 return text
             return TRANSLATIONS.get(lang, {}).get(text, text)
 
+        # Labels das opções de idioma
+        if lang == "pt-br":
+            langs = [("pt-br", "Português"), ("en", "Inglês"), ("zh", "中文")]
+        elif lang == "en":
+            langs = [("pt-br", "Portuguese"), ("en", "English"), ("zh", "中文")]
+        else:  # zh → manter nomes PT/EN para facilitar troca
+            langs = [("pt-br", "Português"), ("en", "English"), ("zh", "中文")]
+
         return {
             "current_lang": lang,
-            "supported_langs": [
-                ("pt-br", _("Português")),
-                ("en", _("English")),
-                ("zh", _("中文")),
-            ],
+            "supported_langs": langs,
             "_": _,
         }
 
