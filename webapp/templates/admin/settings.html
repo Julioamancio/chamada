@@ -46,7 +46,7 @@
   </div>
   <div class="col-md-6">
     <div class="card p-3 h-100">
-      <h5 class="mb-3">{{ _("Tema ({{ _("Claro") }}/{{ _("Escuro") }})") }}</h5>
+      <h5 class="mb-3">{{ _("Tema (claro/escuro)") }}</h5>
       <div class="d-flex align-items-center gap-2 mb-2">
         <button id="btnThemeLight" class="btn btn-outline-secondary" type="button"><i class="bi bi-sun"></i> {{ _("Claro") }}</button>
         <button id="btnThemeDark" class="btn btn-outline-secondary" type="button"><i class="bi bi-moon"></i> {{ _("Escuro") }}</button>
@@ -98,7 +98,7 @@
         <div class="mb-2">
           <input class="form-control" type="file" name="dbfile" accept=".db" required>
         </div>
-        <button class="btn btn-outline-danger" type="submit" onclick="return confirm('SubstituirÃ¡ o banco atual (um backup serÃ¡ criado). Continuar?')">{{ _("Importar e substituir") }}</button>
+        <button class="btn btn-outline-danger" type="submit" onclick="return confirm('{{ _("Substituirá o banco atual (um backup será criado). Continuar?") }}')">{{ _("Importar e substituir") }}</button>
       </form>
       <div class="small text-muted mt-3">
         Local atual do banco: <code>{{ db_path }}</code> ({{ (db_bytes or 0) }} bytes)
