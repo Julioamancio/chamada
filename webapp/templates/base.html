@@ -197,9 +197,9 @@
           {% endif %}
           {% if current_user.is_authenticated %}
             {% if current_user.role == 'admin' %}
-            <a class="btn btn-sm btn-outline-light text-start" href="{{ url_for('admin.settings') }}"><i class="bi bi-gear"></i><span class="label ms-1">{{ _('ConfiguraÃ§Ãµes') }}</span></a>
+            <a class="btn btn-sm btn-outline-light text-start" href="{{ url_for('admin.settings') }}"><i class="bi bi-gear"></i><span class="label ms-1">{{ _('Configurações') }}</span></a>
             {% else %}
-            <a class="btn btn-sm btn-outline-light text-start" href="{{ url_for('teacher.settings') }}"><i class="bi bi-gear"></i><span class="label ms-1">{{ _('ConfiguraÃ§Ãµes') }}</span></a>
+            <a class="btn btn-sm btn-outline-light text-start" href="{{ url_for('teacher.settings') }}"><i class="bi bi-gear"></i><span class="label ms-1">{{ _('Configurações') }}</span></a>
             {% endif %}
           {% endif %}
           {% if current_user.is_authenticated %}
