@@ -1,14 +1,14 @@
 ﻿{% extends 'base.html' %}
 {% block content %}
 <div class="page-head d-flex align-items-center mb-3">
-  <h3 class="me-auto">{{ _("{{ _("Turma") }}s") }}</h3>
+  <h3 class="me-auto">{{ _('Turmas') }}</h3>
   <a class="btn btn-secondary" href="{{ url_for('admin.dashboard') }}">{{ _("Usuários") }}</a>
 </div>
 
 <div class="card p-3 mb-4">
-  <h5 class="mb-3">{{ _("Criar {{ _("Turma") }}") }}</h5>
+  <h5 class="mb-3">{{ _('Criar turma') }}</h5>
   <form class="row g-2 align-items-end" method="post" action="{{ url_for('admin.create_class_admin') }}">
-    <div class="col-12 col-md-5"><label class="form-label">{{ _("Nome") }}</label><input class="form-control" name="name" placeholder="{{ _("Nome da {{ _("Turma") }}") }}" required></div>
+    <div class="col-12 col-md-5"><label class="form-label">{{ _('Nome') }}</label><input class="form-control" name="name" placeholder="{{ _('Nome da turma') }}" required></div>
     <div class="col-12 col-md-5"><label class="form-label">{{ _("Professor") }}</label>
       <select class="form-select" name="owner_id" required>
         <option value="">{{ _("Selecione o professor") }}</option>
@@ -22,7 +22,7 @@
 </div>
 
 <div class="card p-3">
-  <h5 class="mb-3">{{ _("{{ _("Turma") }}s existentes") }}</h5>
+  <h5 class="mb-3">{{ _('Turmas existentes') }}</h5>
   <div class="list-group">
     {% for c in classes %}
     <div class="list-group-item">
@@ -51,14 +51,14 @@
           </form>
         </div>
         <div class="col-12 d-flex justify-content-end">
-          <form method="post" action="{{ url_for('admin.delete_class_admin', class_id=c.id) }}" onsubmit="return confirm('Excluir {{ _("Turma") }} e todos os dados?')">
-            <button class="btn btn-outline-danger">Excluir {{ _("Turma") }}</button>
+          <form method="post" action="{{ url_for('admin.delete_class_admin', class_id=c.id) }}" onsubmit="return confirm('{{ _('Excluir turma e todos os dados?') }}')">
+            <button class="btn btn-outline-danger">{{ _('Excluir turma') }}</button>
           </form>
         </div>
       </div>
     </div>
     {% else %}
-      <div class="list-group-item text-muted">Nenhuma {{ _("Turma") }} cadastrada.</div>
+      <div class="list-group-item text-muted">{{ _('Nenhuma turma cadastrada.') }}</div>
     {% endfor %}
   </div>
 </div>
